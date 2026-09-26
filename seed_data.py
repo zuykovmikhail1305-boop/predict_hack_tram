@@ -14,29 +14,51 @@ import random
 async def seed():
     await init_db()
     async with async_session() as session:
-        # Маршруты (10 штук) — реальные координаты из JSON
-        import json
-        routes_path = os.path.join(os.path.dirname(__file__), "backend", "data", "moscow_tram_routes.json")
-        with open(routes_path, encoding="utf-8") as f:
-            routes_geo = json.load(f)["routes"]
+        # Маршруты (10 штук из данных)
+        routes_data = [
+            (1, "Калужская — Тверская Застава"),
+            (5, "Новокузнецкая — Метро «Университет»"),
+            (7, "Калужская — Новокузнецкая"),
+            (11, "Останкино — Метро «Тимирязевская»"),
+            (12, "Метро «Тимирязевская» — Останкино"),
+            (13, "Новокузнецкая — Тверская Застава"),
+            (15, "Калужская — Метро «Университет»"),
+            (17, "Тверская Застава — Новокузнецкая"),
+            (20, "Метро «Тимирязевская» — Калужская"),
+            (25, "Останкино — Тверская Застава"),
+        ]
 
-        for num_str, route_info in routes_geo.items():
-            num = int(num_str)
-            route = Route(number=num, name=route_info["name"])
+        for num, name in routes_data:
+            route = Route(number=num, name=name)
             session.add(route)
         await session.flush()
 
-        # Остановки — реальные координаты из JSON
-        for i, (num_str, route_info) in enumerate(routes_geo.items()):
+        # Остановки (несколько на маршрут — координаты в центре Москвы)
+        stops_names = [
+            "Тверская Застава", "Белорусский вокзал", "Метро «Маяковская»",
+            "Пушкинская площадь", "Трубная площадь", "Чистые пруды",
+            "Курский вокзал", "Таганская площадь", "Павелецкий вокзал",
+            "Метро «Новокузнецкая»", "Метро «Университет»", "Калужская",
+            "Останкино", "Метро «Тимирязевская»", "Дмитровская",
+            "Менделеевская", "Новослободская", "Савеловский вокзал",
+        ]
+
+        # Координаты остановок (случайное смещение от центра Москвы)
+        base_lat, base_lon = 55.7558, 37.6176
+        for i, r in enumerate(routes_data):
+            route_num, route_name = r
             route = await session.get(Route, i + 1)
-            for stop_data in route_info["stops"]:
+            # Берём 4-6 остановок на маршрут
+            n_stops = random.randint(4, 6)
+            selected = random.sample(stops_names, n_stops)
+            for j, name in enumerate(selected):
                 stop = Stop(
                     route_id=route.id,
-                    name=stop_data["name"],
-                    lat=stop_data["lat"],
-                    lon=stop_data["lon"],
-                    order_num=stop_data["order"],
-                    is_terminal=stop_data["is_terminal"],
+                    name=name,
+                    lat=base_lat + random.uniform(-0.05, 0.05),
+                    lon=base_lon + random.uniform(-0.05, 0.05),
+                    order_num=j + 1,
+                    is_terminal=(j == 0 or j == n_stops - 1),
                 )
                 session.add(stop)
         await session.flush()
