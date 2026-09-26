@@ -106,3 +106,25 @@ docker compose exec backend python seed_data.py
 ---
 
 Хакатон Московского транспорта 2026 · Команда «Трамваи: стратегия прогноза»
+## 🧪 Тестирование
+
+```bash
+cd backend
+pip install -r requirements.txt
+pytest tests/ -v
+```
+
+**30 тестов** для всех эндпоинтов:
+
+| Тест | Что проверяет |
+|------|------------|
+| `TestHealth` | ✅ `/health` статус |
+| `TestRoutes` | ✅ Маршруты: список, пустой |
+| `TestStops` | ✅ Остановки: все, по маршруту, несущ. |
+| `TestForecast` | ✅ Прогноз: фильтры, даты, детализация |
+| `TestScenario` | ✅ Сценарии: CRUD, валидация |
+| `TestExport` | ✅ Экспорт: CSV, XLSX |
+| `TestExternalData` | ✅ Календарь, каникулы, events, batch |
+| `TestML` | ✅ ML: загрузка, очистка, stats |
+
+Тесты используют in-memory SQLite и `httpx.ASGITransport` — не требуют Docker.
