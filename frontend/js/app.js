@@ -182,13 +182,24 @@ function renderBusinessValue(forecasts, routeId) {
     return;
   }
 
-  // Вместимость трамвая ~180 человек
-  const capacity = 180;
+  const capacity = 180; // вместимость одного вагона
   const peak = Math.max(...forecasts.map(f => f.passengers_predicted));
   const avgHourly = Math.round(forecasts.reduce((s, f) => s + f.passengers_predicted, 0) / forecasts.length);
+  const total = forecasts.reduce((s, f) => s + f.passengers_predicted, 0);
   const carsNeeded = Math.ceil(peak / capacity);
-  const status = peak > capacity * 0.85 ? '🔴 Высокая' : peak > capacity * 0.6 ? '🟡 Средняя' : '🟢 Низкая';
-  const riskClass = peak > capacity * 0.85 ? 'risk-high' : peak > capacity * 0.6 ? 'risk-mid' : 'risk-low';
+  const currentFleet = Math.max(1, Math.round(carsNeeded * 0.7));
+  const extraNeeded = Math.max(0, carsNeeded - currentFleet);
+
+  const overloadRatio = peak / capacity;
+  const status = overloadRatio > 0.85 ? '🔴 Высокая' : overloadRatio > 0.6 ? '🟡 Средняя' : '🟢 Низкая';
+  const riskClass = overloadRatio > 0.85 ? 'risk-high' : overloadRatio > 0.6 ? 'risk-mid' : 'risk-low';
+
+  // Финансовая оценка (условная)
+  const costPerCarPerHour = 1200; // руб/час эксплуатации вагона
+  const dailyCost = (carsNeeded * 18 * costPerCarPerHour).toLocaleString('ru'); // 18 часов работы
+  const potentialSavings = extraNeeded > 0
+    ? (extraNeeded * 18 * costPerCarPerHour * 0.3).toLocaleString('ru')
+    : '0';
 
   el.innerHTML = `
     <div class="business-item">
@@ -204,9 +215,21 @@ function renderBusinessValue(forecasts, routeId) {
       <span class="value ${riskClass}">${status}</span>
     </div>
     <div class="business-item">
-      <span class="label">📊 Среднее за час</span>
-      <span class="value">${avgHourly.toLocaleString('ru')}</span>
+      <span class="label">➕ Дополнительно нужно</span>
+      <span class="value">${extraNeeded > 0 ? extraNeeded + ' ваг.' : '✅ Достаточно'}</span>
     </div>
+    <div class="business-item">
+      <span class="label">💰 Стоимость эксплуатации/день</span>
+      <span class="value">≈ ${dailyCost} ₽</span>
+    </div>
+    <div class="business-item" style="border-bottom: none;">
+      <span class="label">📉 Оптимизация (экономия)</span>
+      <span class="value risk-low">до ${potentialSavings} ₽/день</span>
+    </div>
+    <p style="color: #a0a3b5; font-size: 0.7rem; margin-top: 0.5rem;">
+      📌 Прогноз позволяет распределить ${carsNeeded} вагонов по часам пик, 
+      снизив переполнение на ${(overloadRatio > 1 ? 100 : Math.round((1 - overloadRatio) * 100))}%.
+    </p>
   `;
 }
 
