@@ -26,12 +26,19 @@ docker compose up --build
 
 # 3. (отдельно) Сидировать тестовые данные
 docker compose exec backend python seed_data.py
-# или локально:
-# pip install -r backend/requirements.txt
-# python seed_data.py
 ```
 
-Открыть: **http://localhost:3000**
+**Локальный запуск без Docker** (из корня репозитория):
+
+```bash
+pip install -r backend/requirements.txt
+python seed_data.py
+uvicorn backend.main:app --reload
+```
+
+Открыть:
+- **Docker:** http://localhost:3000 (Nginx)
+- **Локально (uvicorn):** http://localhost:8000 — веб-интерфейс и API раздаёт сам FastAPI (статика монтируется по `/static/`)
 
 ## 📡 API
 

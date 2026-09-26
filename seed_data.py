@@ -5,8 +5,8 @@ import os
 # Путь до корня проекта
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
 
-from app.database import init_db, async_session
-from app.models import Route, Stop, Forecast, Scenario
+from backend.app.database import init_db, async_session
+from backend.app.models import Route, Stop, Forecast, Scenario
 from datetime import datetime, timedelta
 import random
 

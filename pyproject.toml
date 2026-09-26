@@ -1,0 +1,29 @@
+[project]
+name = "predict-hack-tram"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "xaimelix", email = "xaimfolk355@yandex.ru" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "fastapi>=0.141.1",
+    "greenlet>=3.5.6",
+    "httpx>=0.28.1",
+    "jinja2>=3.1.6",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.6",
+    "pydantic>=2.13.5",
+    "python-multipart>=0.0.32",
+    "sqlalchemy[asyncio]>=2.1.1",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+predict-hack-tram = "predict_hack_tram:main"
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13.0"]
+build-backend = "uv_build"
