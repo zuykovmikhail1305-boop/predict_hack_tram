@@ -1,0 +1,138 @@
+# 🚋 Трамваи: ИИ-прогноз пассажиропотока
+
+**Хакатон Московского транспорта 2026 · Трек 2**
+
+Веб-сервис для прогнозирования загрузки трамвайных маршрутов Москвы с использованием ML (LightGBM) + интерактивный дашборд с картой.
+
+## 🏗️ Архитектура
+
+```
+┌──────────────────────┐    ┌───────────────────┐    ┌──────────────────┐
+│   Frontend (Vanilla  │───▶│   Backend         │◀───│   ML-батч        │
+│   JS + Leaflet +     │    │   FastAPI +       │    │   Python/LightGBM│
+│   Chart.js)          │    │   SQLite          │    │                  │
+│   :3000              │    │   :8000           │    │                  │
+└──────────────────────┘    └───────────────────┘    └──────────────────┘
+```
+
+## 🚀 Быстрый старт
+
+```bash
+# 1. Клонировать репозиторий и перейти в папку
+git clone <url-репозитория>
+cd predict_hack_tram
+
+# 2. Поднять сервисы в Docker
+docker compose up -d --build
+
+# 3. Наполнить базу данных маршрутами и реальными координатами остановок
+docker compose exec tram-predict-service python load_real_stops.py
+docker compose exec tram-predict-service python update_route_names.py
+
+**Локальный запуск без Docker** (из корня репозитория):
+
+```bash
+pip install -r backend/requirements.txt
+python seed_data.py
+uvicorn backend.main:app --reload
+```
+
+Открыть:
+- **Docker:** http://localhost:3000 (Nginx)
+- **Локально (uvicorn):** http://localhost:8000 — веб-интерфейс и API раздаёт сам FastAPI (статика монтируется по `/static/`)
+
+## 📡 API
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/health` | Проверка сервиса |
+| GET | `/api/routes` | Список маршрутов |
+| GET | `/api/stops?route=N` | Остановки маршрута |
+| GET | `/api/forecast?route=N&from=2025-11-01&to=2025-12-31&granularity=hour` | Прогноз |
+| POST | `/api/forecast/scenario` | Применить коэффициенты |
+| GET | `/api/forecast/scenarios` | История сценариев |
+| GET | `/api/forecast/export?format=csv` | Экспорт CSV |
+| GET | `/api/forecast/export?format=xlsx` | Экспорт Excel |
+| GET | `/api/external/weather?date=2025-11-01&hour=8` | 🌤️ Погода (Open-Meteo) |
+| GET | `/api/external/calendar?date=2025-11-04` | 📅 Производственный календарь |
+| GET | `/api/external/combined?date=2025-11-01&hour=12` | 🌤️📅 Погода + календарь |
+| POST | `/api/external/batch` | 🔄 Массовый запрос (массив дат) |
+| GET | `/api/external/school-holidays?year=2025` | 🏫 Школьные каникулы |
+| GET | `/api/external/events` | 🎭 События Москвы |
+| GET | `/api/external/export-csv?dates=2025-11-01,2025-11-02` | 📊 CSV для таблички |
+
+### POST /api/forecast/scenario
+
+```json
+{
+  "weather_factor": 0.9,
+  "event_factor": 1.1,
+  "season_factor": 1.0,
+  "custom_factor": 1.0,
+  "name": "Дождливый день"
+}
+```
+
+## 🎯 Функциональность
+
+- ✅ Прогноз по трём горизонтам: день / месяц / год
+- ✅ Фильтрация по маршруту, остановке, интервалу
+- ✅ Интерактивная карта Москвы (Leaflet + OpenStreetMap)
+- ✅ Графики динамики пассажиропотока (Chart.js)
+- ✅ Корректирующие коэффициенты (погода, события, сезон)
+- ✅ Блок «Рекомендуемый выпуск» и риск переполнения
+- ✅ Экспорт в CSV/XLSX
+
+## 📦 Технологии
+
+- **Backend:** Python 3.12, FastAPI, SQLAlchemy, SQLite, aiosqlite
+- **Frontend:** Vanilla JS, Leaflet, Chart.js
+- **Инфраструктура:** Docker, Docker Compose, Nginx
+
+## 📋 Обязательные артефакты
+
+- [ ] Код обучения/инференса + README с запуском (ML)
+- [ ] Ссылки на внешние данные (календарь, погода, события)
+- [x] Запускаемый веб-сервис (Docker Compose)
+- [x] Схема архитектуры (выше)
+- [ ] Замеры производительности (k6)
+- [ ] Ограничения и план развития
+
+## ⚠️ Ограничения
+
+- Прогнозы предрассчитаны батчем (не real-time ML-инференс)
+- Детализация по остановкам — эвристика (не модель)
+- Годовой горизонт — оценочный (только 10 мес. истории)
+- Не валидно для новых маршрутов без истории
+
+## 🔮 План развития
+
+- Оперативное переобучение с лагами для горизонта 1 день
+- Геопривязка валидаций к остановкам по телематике ГЛОНАСС
+- TFT / N-BEATS после накопления 2+ лет истории
+
+---
+
+Хакатон Московского транспорта 2026 · Команда «Трамваи: стратегия прогноза»
+## 🧪 Тестирование
+
+```bash
+cd backend
+pip install -r requirements.txt
+pytest tests/ -v
+```
+
+**30 тестов** для всех эндпоинтов:
+
+| Тест | Что проверяет |
+|------|------------|
+| `TestHealth` | ✅ `/health` статус |
+| `TestRoutes` | ✅ Маршруты: список, пустой |
+| `TestStops` | ✅ Остановки: все, по маршруту, несущ. |
+| `TestForecast` | ✅ Прогноз: фильтры, даты, детализация |
+| `TestScenario` | ✅ Сценарии: CRUD, валидация |
+| `TestExport` | ✅ Экспорт: CSV, XLSX |
+| `TestExternalData` | ✅ Календарь, каникулы, events, batch |
+| `TestML` | ✅ ML: загрузка, очистка, stats |
+
+Тесты используют in-memory SQLite и `httpx.ASGITransport` — не требуют Docker.

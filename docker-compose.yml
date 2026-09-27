@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  tram-app:
+    build: .
+    container_name: tram-predict-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

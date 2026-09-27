@@ -1,0 +1,1034 @@
+<!DOCTYPE html><html class="dark" lang="ru" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<title>МосТрам Аналитика</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&amp;family=Russo+One:wght@400;500;700&amp;family=PT+Sans:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="stylesheet" href="/static/css/style.css">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "outline-variant": "#424753",
+          "on-primary-container": "#00306e",
+          "outline": "#8c909e",
+          "background": "#111318",
+          "surface": "#111318",
+          "on-primary-fixed-variant": "#004494",
+          "secondary-fixed": "#d8e2ff",
+          "surface-container-high": "#282a2f",
+          "on-tertiary-container": "#313333",
+          "on-tertiary-fixed-variant": "#454747",
+          "primary-container": "#6299ff",
+          "on-error-container": "#ffdad6",
+          "inverse-on-surface": "#2e3036",
+          "on-secondary-fixed": "#001a42",
+          "tertiary": "#c6c6c7",
+          "on-background": "#e2e2e9",
+          "tertiary-fixed": "#e2e2e2",
+          "inverse-surface": "#e2e2e9",
+          "on-tertiary": "#2f3131",
+          "primary": "#adc6ff",
+          "surface-container-low": "#1a1b21",
+          "on-tertiary-fixed": "#1a1c1c",
+          "on-surface": "#e2e2e9",
+          "surface-bright": "#37393f",
+          "primary-fixed-dim": "#adc6ff",
+          "on-secondary-container": "#e6ecff",
+          "surface-container-highest": "#33353a",
+          "on-primary-fixed": "#001a41",
+          "secondary-container": "#0566d9",
+          "error-container": "#93000a",
+          "error": "#ffb4ab",
+          "surface-tint": "#adc6ff",
+          "surface-container": "#1e1f25",
+          "inverse-primary": "#105bbd",
+          "secondary": "#adc6ff",
+          "on-primary": "#002e69",
+          "surface-variant": "#33353a",
+          "tertiary-container": "#9a9b9b",
+          "surface-container-lowest": "#0c0e13",
+          "on-surface-variant": "#c2c6d5",
+          "secondary-fixed-dim": "#adc6ff",
+          "on-secondary": "#002e6a",
+          "tertiary-fixed-dim": "#c6c6c7",
+          "primary-fixed": "#d8e2ff",
+          "on-secondary-fixed-variant": "#004395",
+          "on-error": "#690005",
+          "surface-dim": "#111318"
+        },
+        borderRadius: {
+          DEFAULT: "0.25rem",
+          lg: "0.5rem",
+          xl: "0.75rem",
+          full: "9999px"
+        },
+        spacing: {
+          "space-xs": "0.25rem",
+          "margin-mobile": "0.75rem",
+          "space-lg": "1.25rem",
+          "gutter-sm": "0.75rem",
+          "margin": "1.25rem",
+          "space-md": "0.875rem",
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "gutter": "1rem"
+        },
+        fontFamily: {
+          "headline-sm": ["Moscow Sans ExtraBold", "sans-serif"],
+          "display-lg": ["Moscow Sans", "sans-serif"],
+          "headline-md": ["Moscow Sans", "sans-serif"],
+          "label-mono": ["Moscow Sans", "monospace"],
+          "metric-md": ["Moscow Sans", "sans-serif"],
+          "label-ui": ["Moscow Sans", "sans-serif"],
+          "metric-xl": ["Moscow Sans ExtraBold", "sans-serif"],
+          "body-md": ["Moscow Sans", "sans-serif"],
+          "display-lg-mobile": ["Moscow Sans", "sans-serif"],
+          "body-lg": ["Russo One", "sans-serif"],
+          "space": ["Moscow Sans", "sans-serif"],
+          "inter": ["Moscow Sans", "sans-serif"]
+        }
+      }
+    }
+  };
+</script>
+<style>
+  @layer base {
+    html, body { margin: 0; padding: 0; }
+    body { overscroll-behavior: none; }
+    main > :first-child { margin-top: 0 !important; }
+    main > :last-child { margin-bottom: 0 !important; }
+  }
+  ::-webkit-scrollbar { display: none; }
+
+  /* Keyframe Animations */
+  @keyframes entranceFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes entranceSlideRight {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scanlineSweep {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    15% {
+      opacity: 0.9;
+    }
+    85% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: translateY(600px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes readyGlowPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(78, 222, 163, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(78, 222, 163, 0);
+    }
+  }
+
+  @keyframes barGrow {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes shimmerFlow {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes tramTrackPulse {
+    0%, 100% { stroke-opacity: 0.35; stroke-width: 9; }
+    50% { stroke-opacity: 0.85; stroke-width: 12; }
+  }
+
+  @keyframes pulseGlowRed {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(255, 180, 171, 0.2), inset 0 0 8px rgba(147, 0, 10, 0.4);
+      border-color: rgba(255, 180, 171, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(255, 180, 171, 0.6), inset 0 0 14px rgba(147, 0, 10, 0.7);
+      border-color: rgba(255, 180, 171, 0.9);
+    }
+  }
+
+  @keyframes beaconPing {
+    0% { transform: scale(0.9); opacity: 0.9; }
+    75%, 100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  @keyframes liveDotGlow {
+    0%, 100% { box-shadow: 0 0 4px #4edea3; transform: scale(1); }
+    50% { box-shadow: 0 0 12px #4edea3; transform: scale(1.15); }
+  }
+
+  @keyframes numFlash {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.35) drop-shadow(0 0 6px rgba(98, 153, 255, 0.8)); }
+    100% { filter: brightness(1); }
+  }
+
+  /* Staggered Entrance Animations */
+  .anim-entrance-sidebar {
+    animation: entranceSlideRight 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+  }
+  .anim-entrance-kpi-1 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  }
+  .anim-entrance-kpi-2 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.20s both;
+  }
+  .anim-entrance-hud {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  }
+  .anim-entrance-route-header {
+    animation: entranceFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  }
+  .anim-entrance-route-search {
+    animation: entranceFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+  }
+  .anim-entrance-card-1 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+  }
+  .anim-entrance-card-2 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+  }
+  .anim-entrance-card-3 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.49s both;
+  }
+  .anim-entrance-card-4 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.56s both;
+  }
+  .anim-entrance-map {
+    animation: entranceFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+  }
+  .anim-entrance-chart {
+    animation: entranceFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  }
+
+  /* Terminal Boot Scanline FX */
+  .terminal-scanline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, rgba(98, 153, 255, 0.2) 20%, rgba(173, 198, 255, 0.95) 50%, rgba(98, 153, 255, 0.2) 80%, transparent 100%);
+    box-shadow: 0 0 16px 3px rgba(98, 153, 255, 0.75);
+    pointer-events: none;
+    z-index: 25;
+    animation: scanlineSweep 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.4s 1 forwards;
+  }
+
+  .ready-pulse-dot {
+    animation: readyGlowPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .bar-grow-origin {
+    transform-origin: bottom;
+    animation: barGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+  }
+
+  .bar-shimmer {
+    background: linear-gradient(90deg, #6299ff 0%, #adc6ff 40%, #ffffff 50%, #adc6ff 60%, #6299ff 100%);
+    background-size: 250% 100%;
+    animation: shimmerFlow 5s linear infinite;
+  }
+
+  .tram-path-glow {
+    animation: tramTrackPulse 3s ease-in-out infinite;
+  }
+
+  .alert-critical-pulse {
+    animation: pulseGlowRed 2s ease-in-out infinite;
+  }
+
+  .beacon-effect::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: rgba(98, 153, 255, 0.7);
+    animation: beaconPing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .live-pulse-dot {
+    animation: liveDotGlow 1.8s ease-in-out infinite;
+  }
+
+  .num-flicker {
+    animation: numFlash 0.5s ease-out;
+  }
+
+  /* Dynamic Tram Motion along Path */
+  .tram-marker-motion {
+    offset-path: path("M 645 50 C 645 80 635 110 635 130 C 635 160 642 180 640 195 L 605 240 L 615 285 L 630 330 L 625 385 L 535 385 L 470 450 L 410 520 L 380 560");
+    offset-rotate: auto 90deg;
+    animation: tramDrive 18s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  }
+
+  @keyframes tramDrive {
+    0% { offset-distance: 0%; }
+    100% { offset-distance: 100%; }
+  }
+
+  /* Active card styling helper */
+  .route-card-active {
+    background: linear-gradient(rgb(11, 19, 34) 0%, rgb(30, 53, 91) 60%, rgb(48, 88, 153) 100%) !important;
+    border: 2px solid rgb(98, 153, 255) !important;
+    box-shadow: rgba(98, 153, 255, 0.35) 0px 0px 25px inset, rgba(98, 153, 255, 0.25) 0px 0px 20px !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+      filter: none !important;
+    }
+    .tram-marker-motion, .terminal-scanline {
+      animation: none !important;
+      display: none !important;
+    }
+  }
+</style>
+</head>
+<body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen">
+<svg aria-hidden="true" class="inline-defs-container" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<!-- Interactive Navigation Sidebar with Staggered Entrance Slide -->
+<aside class="anim-entrance-sidebar fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-white/[0.04]">
+<div class="flex flex-col">
+<!-- Brand Header -->
+<div class="h-16 px-margin flex items-center gap-space-sm bg-surface-container-lowest">
+<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-primary ring-1 ring-primary/20 shadow-[0_0_12px_rgba(98,153,255,0.2)]">
+<span class="material-symbols-outlined text-[20px]">tram</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate">МосТрам Аналитика</span>
+</div>
+</div>
+<!-- Section Label with Telemetry Ready Indicator -->
+<div class="px-space-md py-space-sm flex items-center justify-between">
+<div class="px-space-sm py-space-xs font-label-mono text-label-mono text-outline uppercase tracking-wider flex items-center gap-2">
+<span class="">Операционная панель</span>
+
+</div>
+<span class="w-2 h-2 rounded-full bg-emerald-400 live-pulse-dot ready-pulse-dot mr-2" title="Система телеметрии онлайн"></span>
+</div>
+<!-- Nav Items with interactive glowing hover states -->
+<nav class="flex flex-col gap-space-xs px-space-md" id="sidebar-nav">
+<!-- Active Item: Dashboard -->
+<a aria-current="page" class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-white font-bold transition-all duration-300 relative overflow-hidden" data-path="dashboard" href="#" style="background: linear-gradient(to right, rgba(98, 153, 255, 0.45) 0%, rgba(12, 14, 19, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: rgba(98, 153, 255, 0.22) 0px 0px 20px -4px;">
+<span class="indicator-bar absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r shadow-[0_0_8px_rgba(255,255,255,0.7)] transition-transform duration-200"></span>
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<rect height="7" rx="1" width="7" x="3" y="3"></rect>
+<rect height="7" rx="1" width="7" x="14" y="3"></rect>
+<rect height="7" rx="1" width="7" x="14" y="14"></rect>
+<rect height="7" rx="1" width="7" x="3" y="14"></rect>
+</svg>
+<span class="font-body-md text-body-md text-white transition-colors duration-200">Дашборд</span>
+</a>
+<!-- Inactive Item: Map -->
+<a class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant transition-all duration-300 relative cursor-pointer hover:text-white" data-path="karta" href="#" onmouseenter="this.style.background='linear-gradient(to right, rgba(98, 153, 255, 0.25) 0%, rgba(12, 14, 19, 0.85) 100%)'; this.style.borderColor='rgba(98, 153, 255, 0.3)'; this.style.transform='translateX(3px)';" onmouseleave="this.style.background=''; this.style.borderColor='rgba(255, 255, 255, 0.04)'; this.style.transform='translateX(0)';" style="border: 1px solid rgba(255, 255, 255, 0.04);">
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-on-surface-variant group-hover:stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+<line x1="8" x2="8" y1="2" y2="18"></line>
+<line x1="16" x2="16" y1="6" y2="22"></line>
+</svg>
+<span class="font-body-md text-body-md">Карта</span>
+</a>
+<!-- Inactive Item: Routes -->
+<a class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant transition-all duration-300 relative cursor-pointer hover:text-white" data-path="marshruty" href="#" onmouseenter="this.style.background='linear-gradient(to right, rgba(98, 153, 255, 0.25) 0%, rgba(12, 14, 19, 0.85) 100%)'; this.style.borderColor='rgba(98, 153, 255, 0.3)'; this.style.transform='translateX(3px)';" onmouseleave="this.style.background=''; this.style.borderColor='rgba(255, 255, 255, 0.04)'; this.style.transform='translateX(0)';" style="border: 1px solid rgba(255, 255, 255, 0.04);">
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-on-surface-variant group-hover:stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<circle cx="6" cy="19" r="3"></circle>
+<path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path>
+<circle cx="18" cy="5" r="3"></circle>
+</svg>
+<span class="font-body-md text-body-md">Маршруты</span>
+</a>
+<!-- Inactive Item: Settings -->
+<a class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant transition-all duration-300 relative cursor-pointer hover:text-white" data-path="nastrojki" href="#" onmouseenter="this.style.background='linear-gradient(to right, rgba(98, 153, 255, 0.25) 0%, rgba(12, 14, 19, 0.85) 100%)'; this.style.borderColor='rgba(98, 153, 255, 0.3)'; this.style.transform='translateX(3px)';" onmouseleave="this.style.background=''; this.style.borderColor='rgba(255, 255, 255, 0.04)'; this.style.transform='translateX(0)';" style="border: 1px solid rgba(255, 255, 255, 0.04);">
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-on-surface-variant group-hover:stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<line x1="4" x2="20" y1="21" y2="21"></line>
+<line x1="4" x2="20" y1="14" y2="14"></line>
+<line x1="4" x2="20" y1="7" y2="7"></line>
+<circle cx="8" cy="7" r="2"></circle>
+<circle cx="16" cy="14" r="2"></circle>
+<circle cx="10" cy="21" r="2"></circle>
+</svg>
+<span class="font-body-md text-body-md">Настройки</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Interactive Action Button with Click Feedback -->
+<div class="p-space-md bg-surface-container-lowest border-t border-white/[0.04]">
+<button class="w-full py-space-sm px-space-md rounded-lg bg-surface-container-low hover:bg-surface-container hover:text-white text-on-surface-variant font-body-md text-body-md flex items-center justify-center gap-space-sm transition-all duration-200 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(98,153,255,0.2)] border border-white/[0.06] hover:border-primary/40 relative overflow-hidden group" id="export-report-btn">
+<span class="material-symbols-outlined text-[20px] text-primary transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:text-primary-container">download</span>
+<span class="transition-colors" id="export-btn-text">Экспорт суточного отчета</span>
+</button>
+</div>
+</aside>
+<!-- Main Workspace Content Container -->
+<div class="pl-72">
+<main class="w-full min-h-screen bg-background px-margin pb-10">
+<div class="flex flex-col w-full">
+<div class="py-space-md flex flex-col gap-gutter">
+<!-- Top Utility Bar: Live ticking clock & telemetry tickers (Staggered Entrance Delays 0.15s - 0.25s) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<!-- Card 1: Passenger Flow -->
+<div class="anim-entrance-kpi-1 p-space-md rounded-xl bg-surface-container-lowest flex items-center justify-between shadow-sm border border-white/[0.05] hover:border-primary/30 transition-all duration-300 group">
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono text-outline uppercase tracking-wider flex items-center gap-1.5">
+                Пассажиропоток за сутки
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-pulse-dot"></span>
+</span>
+<span class="font-metric-xl text-metric-xl text-on-surface tracking-tight transition-all duration-300" id="metric-passengers">142&nbsp;815</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary/20 transition-all duration-300">
+<span class="material-symbols-outlined text-[24px]">groups</span>
+</div>
+</div>
+<!-- Card 2: Next Hour Forecast -->
+<div class="anim-entrance-kpi-2 p-space-md rounded-xl bg-surface-container-lowest flex items-center justify-between shadow-sm border border-white/[0.05] hover:border-primary/30 transition-all duration-300 group">
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono text-outline uppercase tracking-wider">Прогноз на след. час</span>
+<span class="font-metric-xl text-metric-xl text-primary flex items-baseline gap-1.5">
+<span class="transition-all duration-300" id="metric-forecast-pct">+14.8%</span>
+<span class="font-label-mono text-label-mono text-secondary font-normal">+21.4 тыс/ч</span>
+</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary/20 transition-all duration-300">
+<span class="material-symbols-outlined text-[24px]">trending_up</span>
+</div>
+</div>
+<!-- Card 3 & 4: Live Clock & Date HUD -->
+<div class="anim-entrance-hud md:col-span-2 rounded-xl bg-surface-container-lowest flex items-center justify-center shadow-sm" style="border: 1px solid rgba(255, 255, 255, 0.08); padding: 5px;">
+<div class="w-full flex items-center justify-between px-space-md py-space-sm rounded-lg bg-surface-container-low/80 border border-white/[0.08]">
+<!-- Live Ticking Clock -->
+<div class="flex items-center gap-space-xs text-on-surface">
+<svg class="w-5 h-5 text-primary animate-pulse" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="10"></circle>
+<polyline points="12 6 12 12 14 14"></polyline>
+</svg>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold font-mono" id="live-time-display">04:02:08</span>
+
+</div>
+<div class="h-5 w-px bg-outline-variant/60"></div>
+<!-- Calendar Date -->
+<div class="flex items-center gap-space-xs text-on-surface cursor-pointer group hover:text-primary transition-colors">
+<svg class="w-5 h-5 text-outline group-hover:text-primary transition-colors" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<line x1="16" x2="16" y1="2" y2="6"></line>
+<line x1="8" x2="8" y1="2" y2="6"></line>
+<line x1="3" x2="21" y1="10" y2="10"></line>
+</svg>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-primary transition-colors font-semibold">December 24</span>
+<svg class="w-4 h-4 text-outline group-hover:text-primary transition-colors" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<polyline points="6 9 12 15 18 9"></polyline>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Operational Workspace: Left Route Cards + Right Map & Telemetry -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter items-start">
+<!-- Left Column: Interactive Route Master List (Sequential Staggered delays: header 0.25s, search 0.3s, cards 0.35s - 0.56s) -->
+<div class="xl:col-span-4 flex flex-col gap-space-md bg-surface-container-lowest p-space-lg rounded-xl shadow-md border border-white/[0.05]">
+<!-- Header -->
+<div class="anim-entrance-route-header flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-md text-headline-md text-on-surface tracking-tight">Активные маршруты</span>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-label-mono text-label-mono flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                  18 на линии
+                </span>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-high transition-all active:scale-95" title="Сортировка">
+<span class="material-symbols-outlined text-[18px]">sort</span>
+</button>
+</div>
+<!-- Filter & Search Input with smooth focus transitions -->
+<div class="anim-entrance-route-search relative w-full">
+<span class="material-symbols-outlined absolute left-space-md top-1/2 -translate-y-1/2 text-outline text-[18px] transition-colors group-focus-within:text-primary">search</span>
+<input class="w-full bg-surface-container text-on-surface font-body-md text-body-md pl-10 pr-space-md py-space-sm rounded-lg outline-none focus:ring-1 focus:ring-primary-container focus:bg-surface-container-high transition-all placeholder:text-outline border border-transparent focus:border-primary/40" id="route-search-input" placeholder="Поиск маршрута, депо, узла..." type="text">
+</div>
+<!-- Route Cards Container: Clickable Cards with Active State Switching and Cascade Entrance -->
+<div class="flex flex-col gap-space-md" id="route-cards-list">
+<!-- Route Card 1: Т1 (Active by default, Entrance Delay 0.35s) -->
+<div class="anim-entrance-card-1 route-card route-card-active relative p-space-lg rounded-xl cursor-pointer transition-all duration-300 transform hover:-translate-y-0.5 overflow-hidden group" data-route-id="T1">
+<div class="absolute -right-10 -bottom-10 w-32 h-32 bg-primary-container/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+<div class="flex items-start justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface">Номер маршрута</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-highest font-label-mono text-label-mono text-tertiary-fixed font-bold shadow-[0_0_8px_rgba(78,222,163,0.35)]">[ Т1 ]</span>
+</div>
+<span class="flex items-center gap-1 text-[11px] font-label-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-pulse-dot"></span>
+                    АКТИВЕН
+                  </span>
+</div>
+<div class="flex items-baseline justify-between mb-space-xs">
+<span class="font-label-ui text-label-ui text-on-surface-variant">Загруженность</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-metric-md text-metric-md text-on-surface font-bold">100 500</span>
+<span class="font-label-mono text-label-mono text-outline">пасс/сут (84%)</span>
+</div>
+</div>
+<!-- Sleek Electric Progress Bar with Animation -->
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden mb-space-sm">
+<div class="h-full bg-gradient-to-r from-primary via-primary-container to-secondary-container rounded-full w-[84%] shadow-[0_0_12px_rgba(98,153,255,0.7)] transition-all duration-700"></div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label-mono text-outline pt-1">
+<span class="">6 составов на линии</span>
+<span class="text-primary group-hover:translate-x-1 transition-transform">Подробнее →</span>
+</div>
+</div>
+<!-- Route Card 2: 12 (Entrance Delay 0.42s) -->
+<div class="anim-entrance-card-2 route-card p-space-lg rounded-xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 cursor-pointer border border-white/[0.08] hover:border-primary/50 hover:shadow-[0_0_20px_rgba(98,153,255,0.2)] transform hover:-translate-y-0.5 group" data-route-id="12">
+<div class="flex items-start justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface">Номер маршрута</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-highest font-label-mono text-label-mono text-primary font-bold">12</span>
+</div>
+<span class="flex items-center gap-1 text-[11px] font-label-mono text-outline">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                    Штатный
+                  </span>
+</div>
+<div class="flex items-baseline justify-between mb-space-xs">
+<span class="font-label-ui text-label-ui text-on-surface-variant">Загруженность</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-metric-md text-metric-md text-on-surface font-bold">76 200</span>
+<span class="font-label-mono text-label-mono text-outline">пасс/сут (68%)</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden mb-space-sm">
+<div class="h-full bg-gradient-to-r from-primary to-primary-container rounded-full w-[68%] transition-all duration-700"></div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label-mono text-outline pt-1">
+<span class="">4 состава на линии</span>
+<span class="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all">Выбрать →</span>
+</div>
+</div>
+<!-- Route Card 3: 38 (Entrance Delay 0.49s, Critical Alert) -->
+<div class="anim-entrance-card-3 route-card alert-critical-pulse p-space-lg rounded-xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 cursor-pointer border border-error/50 transform hover:-translate-y-0.5 group" data-route-id="38">
+<div class="flex items-start justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface">Номер маршрута</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-highest font-label-mono text-label-mono text-error font-bold">38</span>
+</div>
+<span class="px-space-xs py-0.5 rounded bg-error-container text-on-error-container font-label-mono text-label-mono font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error animate-ping"></span>
+                    ПИК
+                  </span>
+</div>
+<div class="flex items-baseline justify-between mb-space-xs">
+<span class="font-label-ui text-label-ui text-on-surface-variant">Загруженность</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-metric-md text-metric-md text-error font-bold">114 300</span>
+<span class="font-label-mono text-label-mono text-error font-medium">(92%)</span>
+</div>
+</div>
+<!-- Progress Bar Warning -->
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden mb-space-sm">
+<div class="h-full bg-gradient-to-r from-error to-error-container rounded-full w-[92%] shadow-[0_0_10px_rgba(255,180,171,0.5)] transition-all duration-700"></div>
+</div>
+<div class="p-space-xs px-space-sm rounded bg-error-container/30 border border-error/20 flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-error text-[16px] animate-bounce">priority_high</span>
+<span class="font-label-mono text-label-mono text-error truncate">Высокая нагрузка • Затор на Тульской</span>
+</div>
+</div>
+<!-- Route Card 4: 26 (Entrance Delay 0.56s) -->
+<div class="anim-entrance-card-4 route-card p-space-lg rounded-xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 cursor-pointer border border-white/[0.08] hover:border-primary/50 hover:shadow-[0_0_20px_rgba(98,153,255,0.2)] transform hover:-translate-y-0.5 group" data-route-id="26">
+<div class="flex items-start justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-on-surface">Номер маршрута</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-highest font-label-mono text-label-mono text-on-surface-variant font-bold">26</span>
+</div>
+<span class="flex items-center gap-1 text-[11px] font-label-mono text-outline">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                    Штатный
+                  </span>
+</div>
+<div class="flex items-baseline justify-between mb-space-xs">
+<span class="font-label-ui text-label-ui text-on-surface-variant">Загруженность</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-metric-md text-metric-md text-on-surface font-bold">58 900</span>
+<span class="font-label-mono text-label-mono text-outline">пасс/сут (51%)</span>
+</div>
+</div>
+<!-- Progress Bar Standard -->
+<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden mb-space-md">
+<div class="h-full bg-tertiary rounded-full w-[51%] transition-all duration-700"></div>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label-mono text-outline">
+<span class="">3 состава на линии</span>
+<span class="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all">Выбрать →</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Cartography Visualizer + Lower Telemetry Bar Charts -->
+<div class="xl:col-span-8 flex flex-col gap-gutter">
+<!-- Interactive Geospatial Dark Map (Cinematic Entrance Delay 0.3s + Boot Scanline Sweep) -->
+<div class="anim-entrance-map relative w-full h-[520px] rounded-xl overflow-hidden bg-surface-container-lowest shadow-md border border-white/[0.05] group">
+<!-- Terminal Boot Scanline FX -->
+<div class="terminal-scanline"></div>
+<!-- SVG Dark Basemap & Dynamic Vector Route Animation -->
+<svg class="absolute inset-0 w-full h-full object-cover select-none" fill="none" viewBox="0 0 1000 650" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#0C0E13" height="650" width="1000"></rect>
+<!-- Radial ambient glow around Moscow Center -->
+<circle cx="560" cy="200" fill="url(#center-glow)" opacity="0.18" r="320"></circle>
+<defs>
+<radialGradient cx="50%" cy="50%" id="center-glow" r="50%">
+<stop offset="0%" stop-color="#6299ff"></stop>
+<stop offset="100%" stop-color="#0c0e13" stop-opacity="0"></stop>
+</radialGradient>
+<linearGradient id="route-gradient" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#6299ff"></stop>
+<stop offset="50%" stop-color="#3b82f6"></stop>
+<stop offset="100%" stop-color="#adc6ff"></stop>
+</linearGradient>
+<!-- Filter for intense electric route glow -->
+<filter height="140%" id="tramGlow" width="140%" x="-20%" y="-20%">
+<feGaussianBlur result="blur" stdDeviation="4"></feGaussianBlur>
+<feMerge>
+<feMergeNode in="blur"></feMergeNode>
+<feMergeNode in="SourceGraphic"></feMergeNode>
+</feMerge>
+</filter>
+</defs>
+<!-- Grid & District Lines -->
+<path d="M 0 160 L 1000 160 M 0 340 L 1000 340 M 0 500 L 1000 500" stroke="#1A1B21" stroke-dasharray="4 8" stroke-width="1"></path>
+<path d="M 250 0 L 250 650 M 550 0 L 550 650 M 800 0 L 800 650" stroke="#1A1B21" stroke-dasharray="4 8" stroke-width="1"></path>
+<!-- Moskva River Polyline -->
+<path d="M 120 0 C 180 80 280 110 380 100 C 510 80 580 140 600 240 C 620 340 720 380 770 360 C 840 330 890 380 910 500 C 930 600 890 650 880 650" stroke="#161A24" stroke-linecap="round" stroke-linejoin="round" stroke-width="28"></path>
+<path d="M 120 0 C 180 80 280 110 380 100 C 510 80 580 140 600 240 C 620 340 720 380 770 360 C 840 330 890 380 910 500 C 930 600 890 650 880 650" stroke="#1B2232" stroke-linecap="round" stroke-linejoin="round" stroke-width="20"></path>
+<!-- Secondary Roads / Arterials -->
+<path d="M 50 420 Q 320 380 620 180 T 960 90" stroke="#202430" stroke-width="3"></path>
+<path d="M 400 650 Q 560 480 580 250 T 640 0" stroke="#202430" stroke-width="4"></path>
+<path d="M 180 250 Q 420 280 820 240" stroke="#202430" stroke-width="2"></path>
+<!-- Inactive Transit Routes (Ghost lines) -->
+<path d="M 320 580 L 450 420 L 520 360 L 610 360 L 710 240 L 800 180" stroke="#282E3E" stroke-dasharray="2 3" stroke-width="2.5"></path>
+<path d="M 210 310 L 360 310 L 480 390 L 560 520" stroke="#282E3E" stroke-dasharray="2 3" stroke-width="2.5"></path>
+<!-- District Labels -->
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="590" y="90">КРАСНОСЕЛЬСКИЙ Р-Н</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="620" y="115">БАСМАННЫЙ Р-Н</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="320" y="80">ПРЕСНЕНСКИЙ Р-Н</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="440" y="210">ХАМОВНИКИ</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="610" y="320">ЗАМОСКВОРЕЧЬЕ</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="560" y="420">ДАНИЛОВСКИЙ Р-Н</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="410" y="490">ГАГАРИНСКИЙ Р-Н</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="470" y="580">АКАДЕМИЧЕСКИЙ Р-Н</text>
+<text fill="#424753" font-family="'PT Sans', monospace" font-size="10" letter-spacing="1" x="710" y="560">НАГАТИНО-САДОВНИКИ</text>
+<!-- Prominent Center Title: Moscow / Москва -->
+<text fill="#C2C6D5" font-family="'Space Grotesk', sans-serif" font-size="24" font-weight="700" letter-spacing="-0.5" x="570" y="150">Moscow</text>
+<text fill="#8C909E" font-family="'Space Grotesk', sans-serif" font-size="20" font-weight="600" x="572" y="176">Москва</text>
+<!-- ACTIVE ROUTE [T1] VECTOR POLYLINE WITH PULSING GLOW -->
+<!-- Outer Glow Bloom with CSS Animation -->
+<path class="tram-path-glow" d="M 645 50 C 645 80 635 110 635 130 C 635 160 642 180 640 195 L 605 240 L 615 285 L 630 330 L 625 385 L 535 385 L 470 450 L 410 520 L 380 560" stroke="#6299FF" stroke-linecap="round" stroke-linejoin="round"></path>
+<!-- Primary High-Tech Route Stroke -->
+<path d="M 645 50 C 645 80 635 110 635 130 C 635 160 642 180 640 195 L 605 240 L 615 285 L 630 330 L 625 385 L 535 385 L 470 450 L 410 520 L 380 560" filter="url(#tramGlow)" stroke="url(#route-gradient)" stroke-linecap="round" stroke-linejoin="round" stroke-width="4.5"></path>
+<!-- Animated Dash Flow across the rail track -->
+<path d="M 645 50 C 645 80 635 110 635 130 C 635 160 642 180 640 195 L 605 240 L 615 285 L 630 330 L 625 385 L 535 385 L 470 450 L 410 520 L 380 560" opacity="0.9" stroke="#FFFFFF" stroke-dasharray="8 16" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75">
+<animate attributeName="stroke-dashoffset" dur="3s" repeatCount="indefinite" values="24;0"></animate>
+</path>
+<!-- Route Tramway Stops (Nodes) with Labels -->
+<!-- Stop 1: Чистые пруды -->
+<circle cx="645" cy="50" fill="#0C0E13" r="5.5" stroke="#6299FF" stroke-width="2.5"></circle>
+<text fill="#E2E2E9" font-family="'Inter', sans-serif" font-size="11" font-weight="600" x="658" y="54">м. Чистые пруды</text>
+<!-- Stop 2: Замоскворечье -->
+<circle cx="605" cy="240" fill="#0C0E13" r="4.5" stroke="#6299FF" stroke-width="2"></circle>
+<text fill="#C2C6D5" font-family="'Inter', sans-serif" font-size="11" x="510" y="244">м. Новокузнецкая</text>
+<!-- Stop 3: Павелецкий узел (Active Node with concentric pulse) -->
+<g transform="translate(625, 385)">
+<circle cx="0" cy="0" fill="#6299FF" opacity="0.25" r="14">
+<animate attributeName="r" dur="2.2s" repeatCount="indefinite" values="8;20;8"></animate>
+<animate attributeName="opacity" dur="2.2s" repeatCount="indefinite" values="0.4;0;0.4"></animate>
+</circle>
+<circle cx="0" cy="0" fill="#6299FF" r="6" stroke="#FFFFFF" stroke-width="2"></circle>
+</g>
+<text fill="#E2E2E9" font-family="'Inter', sans-serif" font-size="11" font-weight="700" x="642" y="390">Павелецкий вокзал</text>
+<!-- Stop 4: Даниловский -->
+<circle cx="535" cy="385" fill="#0C0E13" r="4.5" stroke="#6299FF" stroke-width="2"></circle>
+<text fill="#C2C6D5" font-family="'Inter', sans-serif" font-size="11" x="500" y="372">Даниловский рынок</text>
+<!-- Stop 5: Тульская (Traffic Delay warning) -->
+<circle cx="470" cy="450" fill="#FFB4AB" r="5.5"></circle>
+<circle cx="470" cy="450" opacity="0.7" r="12" stroke="#FFB4AB" stroke-width="1.5">
+<animate attributeName="r" dur="1.8s" repeatCount="indefinite" values="6;16;6"></animate>
+<animate attributeName="opacity" dur="1.8s" repeatCount="indefinite" values="0.8;0;0.8"></animate>
+</circle>
+<text fill="#FFB4AB" font-family="'Inter', sans-serif" font-size="11" font-weight="600" x="390" y="445">м. Тульская (Затор)</text>
+<!-- Stop 6: Академическая -->
+<circle cx="380" cy="560" fill="#4EDEA3" r="6"></circle>
+<circle cx="380" cy="560" opacity="0.5" r="12" stroke="#4EDEA3" stroke-width="1.5"></circle>
+<text fill="#E2E2E9" font-family="'Inter', sans-serif" font-size="12" font-weight="700" x="260" y="565">м. Академическая</text>
+<!-- Dynamic Real-time Traveling Tram Marker along the route path vector -->
+<g class="tram-marker-motion">
+<circle cx="0" cy="0" fill="#6299FF" opacity="0.4" r="12">
+<animate attributeName="r" dur="1.5s" repeatCount="indefinite" values="6;16;6"></animate>
+<animate attributeName="opacity" dur="1.5s" repeatCount="indefinite" values="0.6;0;0.6"></animate>
+</circle>
+<rect fill="#6299FF" height="14" rx="3" stroke="#FFFFFF" stroke-width="2" width="22" x="-11" y="-7"></rect>
+<text fill="#001A41" font-family="'PT Sans', monospace" font-size="8" font-weight="700" text-anchor="middle" y="3.5">#412</text>
+</g>
+<!-- Additional Tram #418 & #409 Static/telemetric positions -->
+<g transform="translate(435, 488)">
+<rect fill="#6299FF" height="12" rx="3" stroke="#FFFFFF" stroke-width="1.5" width="20" x="-10" y="-6"></rect>
+<text fill="#001A41" font-family="'PT Sans', monospace" font-size="8" font-weight="700" x="-7" y="3">#418</text>
+</g>
+<g transform="translate(637, 160)">
+<rect fill="#4EDEA3" height="12" rx="3" stroke="#FFFFFF" stroke-width="1.5" width="20" x="-10" y="-6"></rect>
+<text fill="#002113" font-family="'PT Sans', monospace" font-size="8" font-weight="700" x="-7" y="3">#409</text>
+</g>
+</svg>
+<!-- Top-Right Map HUD: Interactive Tram Route Stops List with Beacon Effects -->
+<div class="absolute top-space-md right-space-md z-20 w-72 bg-surface-container-lowest/92 backdrop-blur-md rounded-xl p-space-sm shadow-2xl flex flex-col gap-space-xs border border-white/[0.08] max-h-[calc(100%-2rem)] overflow-y-auto">
+<div class="flex items-center justify-between pb-space-xs border-b border-white/[0.06]">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="px-space-xs py-0.5 rounded bg-primary-container text-on-primary-container font-label-mono text-[10px] font-bold">Т1</span>
+<span class="font-headline-sm text-body-md font-bold text-on-surface">Остановки маршрута</span>
+</div>
+<span class="font-label-mono text-[10px] text-outline truncate">Следование: Чистые пруды → Академическая</span>
+</div>
+<button class="w-6 h-6 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Свернуть">
+<span class="material-symbols-outlined text-[16px]">expand_less</span>
+</button>
+</div>
+<!-- Telemetry banner inside stops HUD -->
+<div class="flex items-center justify-between px-space-xs py-1 rounded bg-surface-container-low border border-white/[0.04]">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-emerald-400 live-pulse-dot"></span>
+<span class="font-label-mono text-[10px] text-on-surface">В движении • Рейс #412</span>
+</div>
+<span class="font-label-mono text-[10px] text-primary font-semibold">18 мин в пути</span>
+</div>
+<!-- Interactive Stops Timeline with Hover highlighting and active beacon -->
+<div class="relative flex flex-col gap-space-sm pt-space-xs" id="stops-container">
+<!-- Timeline vertical bar -->
+<div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-outline-variant/40 pointer-events-none">
+<div class="w-full h-[38%] bg-gradient-to-b from-primary via-primary-container to-secondary-container shadow-[0_0_8px_rgba(98,153,255,0.8)]"></div>
+</div>
+<!-- Stop 1: Чистые пруды -->
+<div class="stop-item relative flex items-start gap-space-sm p-1 rounded-lg hover:bg-surface-container-high/60 cursor-pointer transition-all duration-200 group">
+<div class="relative z-10 w-6 flex justify-center">
+<div class="w-2.5 h-2.5 rounded-full bg-primary border-2 border-surface-container-lowest shadow-[0_0_8px_rgba(98,153,255,0.7)] mt-0.5 group-hover:scale-125 transition-transform"></div>
+</div>
+<div class="flex-1 flex items-baseline justify-between min-w-0">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-[12px] text-on-surface font-semibold truncate group-hover:text-primary transition-colors">ст. Чистые пруды</span>
+<span class="font-label-mono text-[10px] text-outline">Конечная • Отправление</span>
+</div>
+<span class="font-label-mono text-[10px] text-outline shrink-0">06:05</span>
+</div>
+</div>
+<!-- Stop 2: Павелецкий вокзал (ACTIVE STOP WITH BEACON) -->
+<div class="stop-item relative flex items-start gap-space-sm p-space-xs rounded bg-surface-container-high/70 border border-primary/40 shadow-[0_0_15px_rgba(98,153,255,0.15)] cursor-pointer transition-all duration-200 group">
+<div class="relative z-10 w-6 flex justify-center">
+<div class="relative beacon-effect">
+<div class="w-3 h-3 rounded-full bg-primary ring-4 ring-primary-container/30 shadow-[0_0_12px_rgba(98,153,255,0.9)] mt-0.5"></div>
+</div>
+</div>
+<div class="flex-1 flex flex-col min-w-0">
+<div class="flex items-baseline justify-between gap-1">
+<span class="font-headline-sm text-[12px] text-primary font-bold truncate">ст. Павелецкий вокзал</span>
+<span class="px-space-xs py-0.5 rounded bg-primary-container/20 text-primary font-label-mono text-[10px] font-bold border border-primary/30">Посадка</span>
+</div>
+<div class="flex items-center justify-between mt-0.5">
+<span class="font-label-mono text-[10px] text-on-surface-variant">+84 / -92 пасс.</span>
+<span class="font-label-mono text-[10px] text-primary font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                          Сейчас
+                        </span>
+</div>
+</div>
+</div>
+<!-- Stop 3: Даниловский рынок -->
+<div class="stop-item relative flex items-start gap-space-sm p-1 rounded-lg hover:bg-surface-container-high/60 cursor-pointer transition-all duration-200 group">
+<div class="relative z-10 w-6 flex justify-center">
+<div class="w-2 h-2 rounded-full bg-surface-container-highest border border-outline-variant mt-1 group-hover:bg-primary group-hover:border-primary transition-colors"></div>
+</div>
+<div class="flex-1 flex items-baseline justify-between min-w-0">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-[12px] text-on-surface-variant font-medium truncate group-hover:text-white transition-colors">ст. Даниловский рынок</span>
+<span class="font-label-mono text-[10px] text-outline">Следующая остановка</span>
+</div>
+<span class="font-label-mono text-[10px] text-secondary font-medium shrink-0">~4 мин</span>
+</div>
+</div>
+<!-- Stop 4: Тульская -->
+<div class="stop-item relative flex items-start gap-space-sm p-1 rounded-lg hover:bg-error-container/20 cursor-pointer transition-all duration-200 group">
+<div class="relative z-10 w-6 flex justify-center">
+<div class="w-2 h-2 rounded-full bg-error border border-error-container mt-1 shadow-[0_0_6px_rgba(255,180,171,0.5)]"></div>
+</div>
+<div class="flex-1 flex items-baseline justify-between min-w-0">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-[12px] text-error font-medium truncate">ст. Метро Тульская</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-error text-[10px]">warning</span>
+<span class="font-label-mono text-[10px] text-error">Задержка +1.5 мин</span>
+</div>
+</div>
+<span class="font-label-mono text-[10px] text-outline shrink-0">~11 мин</span>
+</div>
+</div>
+<!-- Stop 5: Академическая -->
+<div class="stop-item relative flex items-start gap-space-sm p-1 rounded-lg hover:bg-surface-container-high/60 cursor-pointer transition-all duration-200 group">
+<div class="relative z-10 w-6 flex justify-center">
+<div class="w-2 h-2 rounded-full bg-surface-container-highest border border-outline mt-1 group-hover:bg-primary transition-colors"></div>
+</div>
+<div class="flex-1 flex items-baseline justify-between min-w-0">
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-[12px] text-on-surface-variant font-medium truncate group-hover:text-white transition-colors">ст. Академическая</span>
+<span class="font-label-mono text-[10px] text-outline">Конечная станция</span>
+</div>
+<span class="font-label-mono text-[10px] text-outline shrink-0">~18 мин</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom-Left Watermark -->
+<div class="absolute bottom-space-sm left-space-md z-10 flex items-center gap-space-xs opacity-60 pointer-events-none">
+<span class="font-headline-sm text-headline-sm text-outline tracking-wider font-bold">ГУП Московский метрополитен</span>
+</div>
+</div>
+<!-- Lower Section: Bar Charts with Interactive Tooltips & Staggered Entrance (Delay 0.45s) -->
+<div class="grid grid-cols-1 gap-gutter w-full">
+<div class="anim-entrance-chart bg-surface-container-lowest p-space-lg rounded-xl flex flex-col justify-between shadow-md min-h-[220px] w-full border border-white/[0.05]">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Почасовая динамика пассажиропотока</span>
+<span class="font-label-mono text-label-mono text-outline">Нагрузка по ключевым операционным окнам</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="px-space-sm py-0.5 rounded bg-surface-container font-label-mono text-label-mono text-primary border border-primary/20" id="chart-route-tag">Маршрут Т1</span>
+</div>
+</div>
+<!-- 3 Telemetry Bars with Interactive Hover Tooltips and Entrance Shimmer -->
+<div class="grid grid-cols-3 gap-gutter items-end h-32 pt-2 px-space-md relative">
+<!-- Dynamic Tooltip Element -->
+<div class="absolute pointer-events-none opacity-0 transition-opacity duration-200 bg-surface-container-highest/95 border border-primary/40 px-3 py-1.5 rounded-lg shadow-xl text-center z-30 transform -translate-x-1/2 -translate-y-full mb-2" id="bar-tooltip">
+<div class="font-label-mono text-[10px] text-outline" id="tooltip-title"></div>
+<div class="font-headline-sm text-[13px] text-primary font-bold" id="tooltip-value"></div>
+</div>
+<!-- Column 1: Morning Peak -->
+<div class="bar-col flex flex-col items-center h-full justify-end group cursor-pointer" data-passengers="28 400 чел." data-percent="85%" data-period="07:00 — 10:00 (Утренний пик)">
+<div class="bar-grow-origin bar-shimmer w-full rounded-t-md group-hover:brightness-110 group-hover:shadow-[0_0_24px_rgba(98,153,255,0.7)] transition-all duration-300 flex items-center justify-center text-on-primary-container font-label-mono text-label-mono font-bold" style="height: 85%;">
+                      28.4 тыс
+                    </div>
+</div>
+<!-- Column 2: Midday Base / Evening Peak -->
+<div class="bar-col flex flex-col items-center h-full justify-end group cursor-pointer" data-passengers="32 100 чел." data-percent="100%" data-period="17:30 — 20:30 (Вечерний максимум)">
+<div class="bar-grow-origin bar-shimmer w-full rounded-t-md group-hover:brightness-110 group-hover:shadow-[0_0_24px_rgba(98,153,255,0.7)] transition-all duration-300 flex items-center justify-center text-on-primary-container font-label-mono text-label-mono font-bold" style="height: 100%;">
+                      32.1 тыс
+                    </div>
+</div>
+<!-- Column 3: Evening Peak / Interval -->
+<div class="bar-col flex flex-col items-center h-full justify-end group cursor-pointer" data-passengers="29 800 чел." data-percent="90%" data-period="12:00 — 15:00 (Межпиковый интервал)">
+<div class="bar-grow-origin bar-shimmer w-full rounded-t-md group-hover:brightness-110 group-hover:shadow-[0_0_24px_rgba(98,153,255,0.7)] transition-all duration-300 flex items-center justify-center text-on-primary-container font-label-mono text-label-mono font-bold" style="height: 90%;">
+                      29.8 тыс
+                    </div>
+</div>
+</div>
+<!-- Labels Bar -->
+<div class="grid grid-cols-3 gap-gutter text-center pt-space-sm">
+<span class="font-label-mono text-label-mono text-outline truncate hover:text-white transition-colors cursor-default">07:00 — 10:00 Утренний пик</span>
+<span class="font-label-mono text-label-mono text-primary font-semibold truncate hover:brightness-125 transition-all cursor-default">17:30 — 20:30 Вечерний максимум</span>
+<span class="font-label-mono text-label-mono text-outline truncate hover:text-white transition-colors cursor-default">12:00 — 15:00 Межпиковый интервал</span>
+</div>
+<div class="text-center pt-space-xs flex items-center justify-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+<span class="font-label-mono text-label-mono text-outline tracking-wider uppercase">Подписи к графикам • Сенсоры входных валидаторов</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Interactive Client-side Scripting -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 1. Live Real-time Clock
+    const timeDisplay = document.getElementById('live-time-display');
+    const ampmDisplay = document.getElementById('live-ampm-display');
+
+    function updateLiveClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+
+      // Keep AM/PM format matching reference UI
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const hoursStr = String(hours).padStart(2, '0');
+
+      if (timeDisplay) timeDisplay.textContent = `${hoursStr}:${minutes}:${seconds}`;
+      if (ampmDisplay) ampmDisplay.textContent = ampm;
+    }
+    setInterval(updateLiveClock, 1000);
+    updateLiveClock();
+
+    // 2. Interactive Route Selection
+    const routeCards = document.querySelectorAll('.route-card');
+    const chartTag = document.getElementById('chart-route-tag');
+
+    routeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        routeCards.forEach(c => {
+          c.classList.remove('route-card-active');
+          c.style.background = '';
+          c.style.borderColor = '';
+          c.style.boxShadow = '';
+        });
+
+        card.classList.add('route-card-active');
+        const routeId = card.getAttribute('data-route-id');
+        if (chartTag) {
+          chartTag.textContent = `Маршрут ${routeId === 'T1' ? 'Т1' : routeId}`;
+          chartTag.classList.add('num-flicker');
+          setTimeout(() => chartTag.classList.remove('num-flicker'), 500);
+        }
+      });
+    });
+
+    // 3. Search Filter in Route List
+    const searchInput = document.getElementById('route-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        routeCards.forEach(card => {
+          const text = card.textContent.toLowerCase();
+          if (text.includes(query)) {
+            card.style.display = 'block';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // 4. Bar Chart Tooltip Interaction
+    const barCols = document.querySelectorAll('.bar-col');
+    const tooltip = document.getElementById('bar-tooltip');
+    const tooltipTitle = document.getElementById('tooltip-title');
+    const tooltipValue = document.getElementById('tooltip-value');
+
+    barCols.forEach(col => {
+      col.addEventListener('mouseenter', (e) => {
+        const period = col.getAttribute('data-period');
+        const count = col.getAttribute('data-passengers');
+        const pct = col.getAttribute('data-percent');
+
+        tooltipTitle.textContent = period;
+        tooltipValue.textContent = `${count} (${pct})`;
+
+        const rect = col.getBoundingClientRect();
+        const parentRect = col.parentElement.getBoundingClientRect();
+        const leftPos = rect.left - parentRect.left + (rect.width / 2);
+
+        tooltip.style.left = `${leftPos}px`;
+        tooltip.style.top = `15%`;
+        tooltip.style.opacity = '1';
+      });
+
+      col.addEventListener('mouseleave', () => {
+        tooltip.style.opacity = '0';
+      });
+    });
+
+    // 5. Live Telemetry Random Data Ticker
+    const passengersElem = document.getElementById('metric-passengers');
+    const forecastElem = document.getElementById('metric-forecast-pct');
+
+    setInterval(() => {
+      if (passengersElem) {
+        // Random micro fluctuation +/- 10 passengers
+        const currentVal = parseInt(passengersElem.textContent.replace(/\s/g, ''), 10) || 142850;
+        const delta = Math.floor(Math.random() * 21) - 10;
+        const newVal = currentVal + delta;
+        passengersElem.textContent = newVal.toLocaleString('ru-RU');
+        passengersElem.classList.add('num-flicker');
+        setTimeout(() => passengersElem.classList.remove('num-flicker'), 500);
+      }
+    }, 4500);
+
+    // 6. Export Button Click Feedback
+    const exportBtn = document.getElementById('export-report-btn');
+    const exportBtnText = document.getElementById('export-btn-text');
+
+    if (exportBtn && exportBtnText) {
+      exportBtn.addEventListener('click', () => {
+        const originalText = exportBtnText.textContent;
+        exportBtnText.textContent = 'Формирование PDF...';
+        exportBtn.classList.add('ring-2', 'ring-primary', 'bg-surface-container-high');
+
+        setTimeout(() => {
+          exportBtnText.textContent = 'Отчет готов ✓';
+          setTimeout(() => {
+            exportBtnText.textContent = originalText;
+            exportBtn.classList.remove('ring-2', 'ring-primary', 'bg-surface-container-high');
+          }, 2000);
+        }, 1200);
+      });
+    }
+
+    // 7. Stops hover interaction: highlight respective node in SVG
+    const stopItems = document.querySelectorAll('.stop-item');
+    stopItems.forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        item.style.transform = 'translateX(4px)';
+      });
+      item.addEventListener('mouseleave', () => {
+        item.style.transform = 'translateX(0)';
+      });
+    });
+  });
+</script>
+
+
+</body></html>

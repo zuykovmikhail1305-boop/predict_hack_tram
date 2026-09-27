@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Трамваи — Прогноз пассажиропотока</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1>🚋 Прогноз пассажиропотока</h1>
+      <p class="subtitle">Трамвайные маршруты Москвы · ИИ-прогноз загрузки</p>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <!-- Боковая панель управления -->
+    <aside class="controls">
+      <section class="control-section">
+        <h3>📋 Маршрут</h3>
+        <select id="routeSelect" class="form-select">
+          <option value="">— Выберите маршрут —</option>
+        </select>
+      </section>
+
+      <section class="control-section">
+        <h3>📅 Период</h3>
+        <label>
+          От:
+          <input type="date" id="fromDate" class="form-input" />
+        </label>
+        <label>
+          До:
+          <input type="date" id="toDate" class="form-input" />
+        </label>
+        <label>
+          Детализация:
+          <select id="granularity" class="form-select">
+            <option value="hour">По часам</option>
+            <option value="day">По дням</option>
+            <option value="month">По месяцам</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="control-section">
+        <h3>🎛️ Корректирующие коэффициенты</h3>
+        <label>
+          🌧️ Погода:
+          <input type="range" id="weatherFactor" class="form-range" min="0.5" max="1.5" step="0.05" value="1.0" />
+          <span id="weatherFactorVal">1.0</span>
+        </label>
+        <label>
+          🎪 События:
+          <input type="range" id="eventFactor" class="form-range" min="0.5" max="1.5" step="0.05" value="1.0" />
+          <span id="eventFactorVal">1.0</span>
+        </label>
+        <label>
+          📅 Сезон:
+          <input type="range" id="seasonFactor" class="form-range" min="0.5" max="1.5" step="0.05" value="1.0" />
+          <span id="seasonFactorVal">1.0</span>
+        </label>
+        <button id="applyScenarioBtn" class="btn btn-primary">🔄 Применить</button>
+      </section>
+
+      <section class="control-section">
+        <h3>💡 Бизнес-ценность</h3>
+        <div id="businessValue" class="business-box">
+          <p class="hint">Выберите маршрут для расчёта</p>
+        </div>
+      </section>
+
+      <section class="control-section actions">
+        <button id="exportCsvBtn" class="btn btn-secondary">📥 CSV</button>
+        <button id="exportXlsxBtn" class="btn btn-secondary">📥 XLSX</button>
+      </section>
+    </aside>
+
+    <!-- Основной контент -->
+    <section class="content">
+      <div class="card map-card">
+        <h2>🗺️ Карта маршрутов</h2>
+        <div id="map" class="map-container"></div>
+      </div>
+
+      <div class="card chart-card">
+        <h2>📊 Динамика пассажиропотока</h2>
+        <canvas id="chartCanvas"></canvas>
+      </div>
+
+      <div class="card stats-card">
+        <h2>📋 Сводка</h2>
+        <div id="statsSummary" class="stats-grid">
+          <p class="hint">Загрузите данные для отображения сводки</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Хакатон Московского транспорта 2026 · Команда «Трамваи: стратегия прогноза»</p>
+  </footer>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/map.js"></script>
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
