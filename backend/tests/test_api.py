@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 from app.database import Base, get_db
 from app.main import app
 from app.models import Route, Stop, Forecast, Scenario
+from app.services.prediction import model_worker
 
 # Используем in-memory SQLite для тестов
 TEST_DATABASE_URL = "sqlite+aiosqlite://"
@@ -361,6 +362,14 @@ class TestPredict:
         "is_weekend", "is_holiday", "weather_factor", "event_factor",
     }
 
+    @pytest.fixture(autouse=True)
+    def _force_statistical_mode(self, monkeypatch):
+        """PREDICT_DISABLE_MODEL=1: тесты детерминированы и быстры, даже если
+        артефакты CatBoost лежат в репозитории. Сбрасываем кэш загрузки,
+        чтобы переопределение гарантированно применилось."""
+        monkeypatch.setenv("PREDICT_DISABLE_MODEL", "1")
+        model_worker.reset_for_test()
+
     async def test_predict_hourly_no_persist(self, client, seed_data):
         """persist=false: 200, 24 почасовых строк, все поля Forecast на месте."""
         resp = await client.post("/api/predict", json={
@@ -478,3 +487,60 @@ class TestPredict:
         assert data["mode"] == "statistical"
         assert data["model_path"] is None
         assert data["rows"][0]["passengers_predicted"] >= 0
+
+
+def _catboost_available() -> bool:
+    """Артефакты CatBoost есть в репозитории и библиотеки импортируются?"""
+    from pathlib import Path
+
+    try:
+        import catboost  # noqa: F401
+        import joblib  # noqa: F401
+        import pandas  # noqa: F401
+        import numpy  # noqa: F401
+        from sklearn.preprocessing import MinMaxScaler  # noqa: F401
+    except Exception:
+        return False
+    models_dir = Path(__file__).resolve().parent.parent / "models" / "artifacts"
+    return any(models_dir.glob("catboost_route_*.joblib"))
+
+
+@pytest.mark.skipif(
+    not _catboost_available(),
+    reason="Реальная CatBoost-модель не собрана (нет артефактов или библиотек)",
+)
+class TestPredictCatboostReal:
+    """Реальная CatBoost-модель: один /predict с mode='catboost'.
+
+    Работает только когда артефакты backend/models/artifacts/catboost_route_*.joblib
+    присутствуют И библиотеки (catboost, scikit-learn, joblib) импортируются;
+    иначе тест пропускается.
+    """
+
+    async def test_predict_real_catboost_mode(self, client, seed_data, monkeypatch):
+        """Полноценный прогон: маршрут 1 (модель есть), период внутри метео-покрытия."""
+        monkeypatch.delenv("PREDICT_DISABLE_MODEL", raising=False)
+        model_worker.reset_for_test()
+
+        resp = await client.post("/api/predict", json={
+            "route_ids": [1],
+            "start": "2025-03-01T00:00:00",
+            "horizon": "hour",
+            "periods": 6,
+            "persist": False,
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["mode"] == "catboost"
+        assert data["model_path"] is not None
+        assert data["predicted"] == 6
+        rows = data["rows"]
+        assert len(rows) == 6
+        for r in rows:
+            assert r["route_id"] == 1
+            assert r["passengers_predicted"] >= 0
+            assert r["passengers_lower"] == round(r["passengers_predicted"] * 0.8)
+            assert r["passengers_upper"] == round(r["passengers_predicted"] * 1.2)
+        # Ночи (часы 1-3) обнуляются как и в predict_1.py
+        hours = {r["hour"]: r["passengers_predicted"] for r in rows}
+        assert all(v == 0 for h, v in hours.items() if h in (1, 2, 3))

@@ -1,12 +1,13 @@
 """API-ручки для загрузки прогнозов ML-модели Миши."""
-from fastapi import APIRouter, Depends,HTTPException, UploadFile, File, Form
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import csv, io, json
 
-from app.database import get_db, async_session
-from app.models import Forecast, Route
+from app.database import get_db
+from app.models import Forecast
+from app.services.forecast_ingest import ingest_forecasts
 
 router = APIRouter(prefix="/api/ml", tags=["ml"])
 
@@ -76,34 +77,19 @@ async def upload_ml_predictions(
     if not records:
         raise HTTPException(400, "Нет записей для загрузки")
     
-    # Валидация маршрутов
     route_ids = set(r["route_id"] for r in records)
-    existing = (await db.execute(select(Route.id).where(Route.id.in_(route_ids)))).scalars().all()
-    missing = route_ids - set(existing)
-    if missing:
-        raise HTTPException(400, f"Маршруты с ID {missing} не найдены в БД. Сначала запусти seed_data.py")
     
-    # Вставка записей
-    forecast_objects = []
-    for rec in records:
-        forecast_objects.append(Forecast(
-            route_id=rec["route_id"],
-            timestamp=rec["timestamp"],
-            hour=rec["hour"],
-            passengers_predicted=rec["passengers_predicted"],
-            passengers_lower=rec["passengers_lower"],
-            passengers_upper=rec["passengers_upper"],
-            is_weekend=rec["timestamp"].weekday() >= 5,
-        ))
-    
-    db.add_all(forecast_objects)
-    await db.commit()
+    # Валидация маршрутов + UPSERT-вставка — общая логика с POST /api/predict
+    try:
+        loaded = await ingest_forecasts(db, records)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     
     return {
         "status": "ok",
-        "loaded": len(records),
+        "loaded": loaded,
         "routes": sorted(route_ids),
-        "message": f"✅ Загружено {len(records)} прогнозов для {len(route_ids)} маршрутов",
+        "message": f"✅ Загружено {loaded} прогнозов для {len(route_ids)} маршрутов",
     }
 
 

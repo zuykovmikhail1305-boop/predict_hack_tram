@@ -112,8 +112,9 @@ class PredictForecastRow(BaseModel):
 class PredictResponse(BaseModel):
     """Ответ POST /api/predict: режим модели, счётчики и строки прогноза."""
 
-    mode: Literal["artifact", "statistical"]
+    mode: Literal["catboost", "statistical"]
     model_path: Optional[str] = None
+    csv_path: Optional[str] = None
     predicted: int = 0
     stored: int = 0
     rows: List[PredictForecastRow] = Field(default_factory=list)

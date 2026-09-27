@@ -1,12 +1,16 @@
 """Живой эндпоинт прогнозирования: POST /api/predict.
 
 Модель живёт в выделенном потоке model-worker (см. app.services.prediction),
-прогнозы UPSERT'ятся в таблицу forecasts, фронтенд читает их через
-существующий GET /api/forecast. Схема БД не меняется.
+прогнозы UPSERT'ятся в таблицу forecasts через общую логику загрузки
+(app.services.forecast_ingest), фронтенд читает их через существующий
+GET /api/forecast. Схема БД не меняется.
+
+При persist=true дополнительно пишется CSV в data/predictions/ в формате,
+который принимает POST /api/ml/predict (upload-контракт).
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, func
 from datetime import datetime
 
 from app.database import get_db
@@ -17,19 +21,20 @@ from app.services.prediction import (
     count_requested_rows,
     model_worker,
 )
+from app.services.forecast_ingest import ingest_forecasts, write_predictions_csv
 
 router = APIRouter(prefix="/api/predict", tags=["predict"])
 
 
 @router.post("", response_model=PredictResponse)
 async def predict(request: PredictRequest, db: AsyncSession = Depends(get_db)):
-    """Сгенерировать прогноз пассажиропотока (артефакт-модель или статистика).
+    """Сгенерировать прогноз пассажиропотока (реальная модель CatBoost или статистика).
 
-    - `persist=true` (по умолчанию) — UPSERT в forecasts: существующие строки
-      выбранных маршрутов в запрошенном диапазоне удаляются, затем вставляются
-      новые (повторные вызовы не создают дубликатов).
-    - Ответ всегда содержит mode ("artifact"|"statistical") и сгенерированные
-      строки, поэтому вызов с `persist=false` тоже отдаёт данные.
+    - `persist=true` (по умолчанию) — CSV в data/predictions/ + UPSERT в
+      forecasts (повторные вызовы не создают дубликатов).
+    - Ответ всегда содержит mode ("catboost"|"statistical") и сгенерированные
+      строки, поэтому вызов с `persist=false` тоже отдаёт данные (dry-run:
+      без CSV-файла и без записи в БД).
     """
     # ── 1. Маршруты: явный список или все маршруты ────────────────────────
     if request.route_ids:
@@ -85,25 +90,20 @@ async def predict(request: PredictRequest, db: AsyncSession = Depends(get_db)):
     )
     rows = result["rows"]
 
-    # ── 6. Persist: удаляем старый диапазон → вставляем новые строки ──────
+    # ── 6. Persist: CSV в data/predictions/ + общая логика загрузки в БД ──
+    csv_path = None
     stored = 0
     if request.persist and rows:
-        timestamps = [r["timestamp"] for r in rows]
-        min_ts, max_ts = min(timestamps), max(timestamps)
-        await db.execute(
-            delete(Forecast).where(
-                Forecast.route_id.in_(route_ids),
-                Forecast.timestamp >= min_ts,
-                Forecast.timestamp <= max_ts,
-            )
-        )
-        db.add_all([Forecast(**row) for row in rows])
-        await db.commit()
-        stored = len(rows)
+        csv_path = str(write_predictions_csv(rows))
+        try:
+            stored = await ingest_forecasts(db, rows)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc))
 
     return PredictResponse(
         mode=result["mode"],
         model_path=result.get("model_path"),
+        csv_path=csv_path,
         predicted=len(rows),
         stored=stored,
         rows=[PredictForecastRow(**row) for row in rows],

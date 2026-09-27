@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "aiosqlite>=0.22.1",
+    "catboost>=1.2.10",
     "fastapi>=0.141.1",
     "greenlet>=3.5.6",
     "httpx>=0.28.1",
@@ -17,6 +18,7 @@ dependencies = [
     "pandas>=3.0.6",
     "pydantic>=2.13.5",
     "python-multipart>=0.0.32",
+    "scikit-learn>=1.4.2",
     "sqlalchemy[asyncio]>=2.1.1",
     "uvicorn>=0.54.0",
 ]

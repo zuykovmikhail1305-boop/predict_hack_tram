@@ -1,0 +1,33 @@
+{
+  "description": "Настройки подготовки meteo.csv: какие столбцы удалить и как сгруппировать коды погоды WMO (формат Open-Meteo).",
+  "drop_columns": [
+    "relative_humidity_2m (%)",
+    "dew_point_2m (°C)",
+    "surface_pressure (hPa)",
+    "cloud_cover (%)",
+    "cloud_cover_low (%)",
+    "cloud_cover_mid (%)",
+    "cloud_cover_high (%)",
+    "wind_speed_100m (km/h)",
+    "wind_direction_100m (°)",
+    "vapour_pressure_deficit (kPa)",
+    "et0_fao_evapotranspiration (mm)",
+    "soil_temperature_0_to_7cm (°C)",
+    "soil_temperature_7_to_28cm (°C)",
+    "soil_temperature_28_to_100cm (°C)",
+    "soil_temperature_100_to_255cm (°C)",
+    "soil_moisture_0_to_7cm (m³/m³)",
+    "soil_moisture_7_to_28cm (m³/m³)",
+    "soil_moisture_28_to_100cm (m³/m³)",
+    "soil_moisture_100_to_255cm (m³/m³)"
+  ],
+  "weather_code_groups": {
+    "weather_clear": [0, 1],
+    "weather_cloudy": [2, 3],
+    "weather_fog": [45, 48],
+    "weather_drizzle": [51, 53, 55, 56, 57],
+    "weather_rain": [61, 63, 65, 66, 67, 80, 81, 82],
+    "weather_snow": [71, 73, 75, 77, 85, 86],
+    "weather_thunder": [95, 96, 99]
+  }
+}
