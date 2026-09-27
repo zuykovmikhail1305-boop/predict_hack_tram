@@ -1,0 +1,1198 @@
+<!DOCTYPE html><html class="dark" lang="ru"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<meta content="web_dashboard" name="shell-type">
+<title>МосТрам Аналитика</title>
+<!-- Moscow Sans: локальные файлы (Flask раздаёт frontend/ как /static/) -->
+<link rel="preload" href="/static/fonts/MoscowSansRegular.otf" as="font" type="font/otf" crossorigin>
+<link rel="preload" href="/static/fonts/MoscowSansExtraBold.otf" as="font" type="font/otf" crossorigin>
+<!-- Иконки HUD (Material Symbols) -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Leaflet 1.9.4 + Chart.js 4.4.4 -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "outline-variant": "#424753",
+          "on-primary-container": "#00306e",
+          "outline": "#8c909e",
+          "background": "#111318",
+          "surface": "#111318",
+          "on-primary-fixed-variant": "#004494",
+          "secondary-fixed": "#d8e2ff",
+          "surface-container-high": "#282a2f",
+          "on-tertiary-container": "#313333",
+          "on-tertiary-fixed-variant": "#454747",
+          "primary-container": "#6299ff",
+          "on-error-container": "#ffdad6",
+          "inverse-on-surface": "#2e3036",
+          "on-secondary-fixed": "#001a42",
+          "tertiary": "#c6c6c7",
+          "on-background": "#e2e2e9",
+          "tertiary-fixed": "#e2e2e2",
+          "inverse-surface": "#e2e2e9",
+          "on-tertiary": "#2f3131",
+          "primary": "#adc6ff",
+          "surface-container-low": "#1a1b21",
+          "on-tertiary-fixed": "#1a1c1c",
+          "on-surface": "#e2e2e9",
+          "surface-bright": "#37393f",
+          "primary-fixed-dim": "#adc6ff",
+          "on-secondary-container": "#e6ecff",
+          "surface-container-highest": "#33353a",
+          "on-primary-fixed": "#001a41",
+          "secondary-container": "#0566d9",
+          "error-container": "#93000a",
+          "error": "#ffb4ab",
+          "surface-tint": "#adc6ff",
+          "surface-container": "#1e1f25",
+          "inverse-primary": "#105bbd",
+          "secondary": "#adc6ff",
+          "on-primary": "#002e69",
+          "surface-variant": "#33353a",
+          "tertiary-container": "#9a9b9b",
+          "surface-container-lowest": "#0c0e13",
+          "on-surface-variant": "#c2c6d5",
+          "secondary-fixed-dim": "#adc6ff",
+          "on-secondary": "#002e6a",
+          "tertiary-fixed-dim": "#c6c6c7",
+          "primary-fixed": "#d8e2ff",
+          "on-secondary-fixed-variant": "#004395",
+          "on-error": "#690005",
+          "surface-dim": "#111318"
+        },
+        borderRadius: {
+          DEFAULT: "0.25rem",
+          lg: "0.5rem",
+          xl: "0.75rem",
+          full: "9999px"
+        },
+        spacing: {
+          "space-xs": "0.25rem",
+          "margin-mobile": "0.75rem",
+          "space-lg": "1.25rem",
+          "gutter-sm": "0.75rem",
+          "margin": "1.25rem",
+          "space-md": "0.875rem",
+          "space-xl": "2rem",
+          "space-sm": "0.5rem",
+          "gutter": "1rem"
+        },
+        fontFamily: {
+          "headline-sm": ["Moscow Sans ExtraBold", "sans-serif"],
+          "display-lg": ["Moscow Sans", "sans-serif"],
+          "headline-md": ["Moscow Sans", "sans-serif"],
+          "label-mono": ["Moscow Sans", "monospace"],
+          "metric-md": ["Moscow Sans", "sans-serif"],
+          "label-ui": ["Moscow Sans", "sans-serif"],
+          "metric-xl": ["Moscow Sans ExtraBold", "sans-serif"],
+          "body-md": ["Moscow Sans", "sans-serif"],
+          "display-lg-mobile": ["Moscow Sans", "sans-serif"],
+          "body-lg": ["Moscow Sans ExtraBold", "sans-serif"],
+          "space": ["Moscow Sans", "sans-serif"],
+          "inter": ["Moscow Sans", "sans-serif"]
+        }
+      }
+    }
+  };
+</script>
+<style>
+  /* ===== Moscow Sans: локальная загрузка (/static/fonts/...) ===== */
+  @font-face {
+    font-family: 'Moscow Sans';
+    src: url('/static/fonts/MoscowSansRegular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Moscow Sans ExtraBold';
+    src: url('/static/fonts/MoscowSansExtraBold.otf') format('opentype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @layer base {
+    html, body { margin: 0; padding: 0; }
+    body { overscroll-behavior: none; }
+    main > :first-child { margin-top: 0 !important; }
+    main > :last-child { margin-bottom: 0 !important; }
+  }
+  ::-webkit-scrollbar { display: none; }
+
+  /* Keyframe Animations */
+  @keyframes entranceFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes entranceSlideRight {
+    from {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scanlineSweep {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    15% {
+      opacity: 0.9;
+    }
+    85% {
+      opacity: 0.7;
+    }
+    100% {
+      transform: translateY(600px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes readyGlowPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(78, 222, 163, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(78, 222, 163, 0);
+    }
+  }
+
+  @keyframes barGrow {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes shimmerFlow {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes tramTrackPulse {
+    0%, 100% { stroke-opacity: 0.35; stroke-width: 9; }
+    50% { stroke-opacity: 0.85; stroke-width: 12; }
+  }
+
+  @keyframes pulseGlowRed {
+    0%, 100% {
+      box-shadow: 0 0 10px rgba(255, 180, 171, 0.2), inset 0 0 8px rgba(147, 0, 10, 0.4);
+      border-color: rgba(255, 180, 171, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(255, 180, 171, 0.6), inset 0 0 14px rgba(147, 0, 10, 0.7);
+      border-color: rgba(255, 180, 171, 0.9);
+    }
+  }
+
+  @keyframes beaconPing {
+    0% { transform: scale(0.9); opacity: 0.9; }
+    75%, 100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  @keyframes liveDotGlow {
+    0%, 100% { box-shadow: 0 0 4px #4edea3; transform: scale(1); }
+    50% { box-shadow: 0 0 12px #4edea3; transform: scale(1.15); }
+  }
+
+  @keyframes numFlash {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.35) drop-shadow(0 0 6px rgba(98, 153, 255, 0.8)); }
+    100% { filter: brightness(1); }
+  }
+
+  /* Staggered Entrance Animations */
+  .anim-entrance-sidebar {
+    animation: entranceSlideRight 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+  }
+  .anim-entrance-kpi-1 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  }
+  .anim-entrance-kpi-2 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.20s both;
+  }
+  .anim-entrance-hud {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  }
+  .anim-entrance-route-header {
+    animation: entranceFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  }
+  .anim-entrance-route-search {
+    animation: entranceFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+  }
+  .anim-entrance-card-1 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+  }
+  .anim-entrance-card-2 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+  }
+  .anim-entrance-card-3 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.49s both;
+  }
+  .anim-entrance-card-4 {
+    animation: entranceFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.56s both;
+  }
+  .anim-entrance-map {
+    animation: entranceFadeUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.30s both;
+  }
+  .anim-entrance-chart {
+    animation: entranceFadeUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both;
+  }
+
+  /* Terminal Boot Scanline FX */
+  .terminal-scanline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, rgba(98, 153, 255, 0.2) 20%, rgba(173, 198, 255, 0.95) 50%, rgba(98, 153, 255, 0.2) 80%, transparent 100%);
+    box-shadow: 0 0 16px 3px rgba(98, 153, 255, 0.75);
+    pointer-events: none;
+    z-index: 25;
+    animation: scanlineSweep 2.2s cubic-bezier(0.4, 0, 0.2, 1) 0.4s 1 forwards;
+  }
+
+  .ready-pulse-dot {
+    animation: readyGlowPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .bar-grow-origin {
+    transform-origin: bottom;
+    animation: barGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+  }
+
+  .bar-shimmer {
+    background: linear-gradient(90deg, #6299ff 0%, #adc6ff 40%, #ffffff 50%, #adc6ff 60%, #6299ff 100%);
+    background-size: 250% 100%;
+    animation: shimmerFlow 5s linear infinite;
+  }
+
+  .tram-path-glow {
+    animation: tramTrackPulse 3s ease-in-out infinite;
+  }
+
+  .alert-critical-pulse {
+    animation: pulseGlowRed 2s ease-in-out infinite;
+  }
+
+  .beacon-effect::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 9999px;
+    background: rgba(98, 153, 255, 0.7);
+    animation: beaconPing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .live-pulse-dot {
+    animation: liveDotGlow 1.8s ease-in-out infinite;
+  }
+
+  .num-flicker {
+    animation: numFlash 0.5s ease-out;
+  }
+
+  /* Active card styling helper */
+  .route-card-active {
+    background: linear-gradient(rgb(11, 19, 34) 0%, rgb(30, 53, 91) 60%, rgb(48, 88, 153) 100%) !important;
+    border: 2px solid rgb(98, 153, 255) !important;
+    box-shadow: rgba(98, 153, 255, 0.35) 0px 0px 25px inset, rgba(98, 153, 255, 0.25) 0px 0px 20px !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+      filter: none !important;
+    }
+    .terminal-scanline {
+      animation: none !important;
+      display: none !important;
+    }
+  }
+
+  /* ===== Слияние функциональности (self-contained, без style.css) ===== */
+  html { color-scheme: dark; }
+
+  /* Панели управления в сайдбаре */
+  .hud-panel {
+    background: #1a1b21;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .hud-panel-label {
+    font-family: 'Moscow Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8c909e;
+  }
+  .hud-field-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-family: 'Moscow Sans', sans-serif;
+    font-size: 12px;
+    color: #c2c6d5;
+  }
+  .hud-select, .hud-input {
+    width: 100%;
+    background: #1e1f25;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e2e9;
+    border-radius: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    font-size: 12px;
+    font-family: 'Moscow Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  .hud-select:focus, .hud-input:focus {
+    border-color: rgba(98, 153, 255, 0.55);
+    box-shadow: 0 0 0 1px rgba(98, 153, 255, 0.35);
+    background: #282a2f;
+  }
+  .hud-select option { background: #1e1f25; color: #e2e2e9; }
+  .hud-range {
+    width: 100%;
+    accent-color: #6299ff;
+    margin: 0.15rem 0;
+  }
+  .hud-range-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-family: 'Moscow Sans', sans-serif;
+    font-size: 12px;
+    color: #c2c6d5;
+  }
+  .hud-range-row .val {
+    font-family: 'Moscow Sans', monospace;
+    font-size: 11px;
+    color: #adc6ff;
+    min-width: 2.2rem;
+    text-align: right;
+  }
+  .hud-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(98, 153, 255, 0.35);
+    background: rgba(98, 153, 255, 0.15);
+    color: #adc6ff;
+    font-family: 'Moscow Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .hud-btn:hover { background: rgba(98, 153, 255, 0.28); box-shadow: 0 0 14px rgba(98, 153, 255, 0.25); }
+  .hud-btn:active { transform: scale(0.97); }
+
+  /* Бизнес-ценность + сводка (HTML инжектится app.js) */
+  .business-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 12px;
+  }
+  .business-item:last-child { border-bottom: none; }
+  .business-item .label { color: #8c909e; }
+  .business-item .value { font-weight: 600; color: #e2e2e9; }
+  .risk-high { color: #ffb4ab; }
+  .risk-mid { color: #ffd28f; }
+  .risk-low { color: #4edea3; }
+  .hint { color: #8c909e; font-size: 12px; margin: 0; }
+  .error { color: #ffb4ab; font-size: 12px; margin: 0; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .stat-item {
+    background: #1e1f25;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+  }
+  .stat-label { font-size: 11px; color: #8c909e; font-family: 'Moscow Sans', sans-serif; }
+  .stat-value { font-size: 18px; font-weight: 700; color: #e2e2e9; margin-top: 0.25rem; font-family: 'Moscow Sans', sans-serif; }
+
+  /* Chart.js canvas + empty-state */
+  .chart-wrapper { position: relative; width: 100%; height: 300px; }
+  #chartCanvas { width: 100% !important; height: 300px !important; display: block !important; }
+  .chart-empty-hint {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #8c909e;
+    font-size: 13px;
+    pointer-events: none;
+    padding: 1rem;
+    font-family: 'Moscow Sans', sans-serif;
+  }
+
+  /* Leaflet: тёмный фильтр тайлов OSM */
+  .map-container.dark .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); }
+  .map-container.dark .leaflet-control-attribution { filter: invert(1) hue-rotate(180deg); }
+  .map-dark-toggle input { accent-color: #6299ff; }
+  .leaflet-container { background: #0c0e13; font-family: 'Moscow Sans', sans-serif; }
+</style>
+</head>
+<body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen">
+<svg aria-hidden="true" class="inline-defs-container" style="position:absolute;width:0;height:0;overflow:hidden"></svg>
+<!-- Interactive Navigation Sidebar with Staggered Entrance Slide -->
+<aside class="anim-entrance-sidebar fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-white/[0.04]">
+<div class="flex flex-col flex-1 min-h-0">
+<!-- Brand Header -->
+<div class="h-16 px-margin flex items-center gap-space-sm bg-surface-container-lowest">
+<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container-high text-primary ring-1 ring-primary/20 shadow-[0_0_12px_rgba(98,153,255,0.2)]">
+<span class="material-symbols-outlined text-[20px]">tram</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate">МосТрам Аналитика</span>
+</div>
+</div>
+<!-- Section Label with Telemetry Ready Indicator -->
+<div class="px-space-md py-space-sm flex items-center justify-between">
+<div class="px-space-sm py-space-xs font-label-mono text-label-mono text-outline uppercase tracking-wider flex items-center gap-2">
+<span class="">Операционная панель</span>
+
+</div>
+<span class="w-2 h-2 rounded-full bg-emerald-400 live-pulse-dot ready-pulse-dot mr-2" title="Система телеметрии онлайн"></span>
+</div>
+<!-- Nav Items with interactive glowing hover states -->
+<nav class="flex flex-col gap-space-xs px-space-md" id="sidebar-nav">
+<!-- Active Item: Dashboard -->
+<a aria-current="page" class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-white font-bold transition-all duration-300 relative overflow-hidden" data-path="dashboard" href="#" style="background: linear-gradient(to right, rgba(98, 153, 255, 0.45) 0%, rgba(12, 14, 19, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: rgba(98, 153, 255, 0.22) 0px 0px 20px -4px;">
+<span class="indicator-bar absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r shadow-[0_0_8px_rgba(255,255,255,0.7)] transition-transform duration-200"></span>
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<rect height="7" rx="1" width="7" x="3" y="3"></rect>
+<rect height="7" rx="1" width="7" x="14" y="3"></rect>
+<rect height="7" rx="1" width="7" x="14" y="14"></rect>
+<rect height="7" rx="1" width="7" x="3" y="14"></rect>
+</svg>
+<span class="font-body-md text-body-md text-white transition-colors duration-200">Дашборд</span>
+</a>
+<!-- Inactive Item: Map -->
+<a class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant transition-all duration-300 relative cursor-pointer hover:text-white" data-path="karta" href="#" onmouseenter="this.style.background='linear-gradient(to right, rgba(98, 153, 255, 0.25) 0%, rgba(12, 14, 19, 0.85) 100%)'; this.style.borderColor='rgba(98, 153, 255, 0.3)'; this.style.transform='translateX(3px)';" onmouseleave="this.style.background=''; this.style.borderColor='rgba(255, 255, 255, 0.04)'; this.style.transform='translateX(0)';" style="border: 1px solid rgba(255, 255, 255, 0.04);">
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-on-surface-variant group-hover:stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+<line x1="8" x2="8" y1="2" y2="18"></line>
+<line x1="16" x2="16" y1="6" y2="22"></line>
+</svg>
+<span class="font-body-md text-body-md">Карта</span>
+</a>
+<!-- Inactive Item: Routes -->
+<a class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant transition-all duration-300 relative cursor-pointer hover:text-white" data-path="marshruty" href="#" onmouseenter="this.style.background='linear-gradient(to right, rgba(98, 153, 255, 0.25) 0%, rgba(12, 14, 19, 0.85) 100%)'; this.style.borderColor='rgba(98, 153, 255, 0.3)'; this.style.transform='translateX(3px)';" onmouseleave="this.style.background=''; this.style.borderColor='rgba(255, 255, 255, 0.04)'; this.style.transform='translateX(0)';" style="border: 1px solid rgba(255, 255, 255, 0.04);">
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-on-surface-variant group-hover:stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<circle cx="6" cy="19" r="3"></circle>
+<path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path>
+<circle cx="18" cy="5" r="3"></circle>
+</svg>
+<span class="font-body-md text-body-md">Маршруты</span>
+</a>
+<!-- Inactive Item: Settings -->
+<a class="nav-item group flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant transition-all duration-300 relative cursor-pointer hover:text-white" data-path="nastrojki" href="#" onmouseenter="this.style.background='linear-gradient(to right, rgba(98, 153, 255, 0.25) 0%, rgba(12, 14, 19, 0.85) 100%)'; this.style.borderColor='rgba(98, 153, 255, 0.3)'; this.style.transform='translateX(3px)';" onmouseleave="this.style.background=''; this.style.borderColor='rgba(255, 255, 255, 0.04)'; this.style.transform='translateX(0)';" style="border: 1px solid rgba(255, 255, 255, 0.04);">
+<svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110 stroke-on-surface-variant group-hover:stroke-white fill-none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<line x1="4" x2="20" y1="21" y2="21"></line>
+<line x1="4" x2="20" y1="14" y2="14"></line>
+<line x1="4" x2="20" y1="7" y2="7"></line>
+<circle cx="8" cy="7" r="2"></circle>
+<circle cx="16" cy="14" r="2"></circle>
+<circle cx="10" cy="21" r="2"></circle>
+</svg>
+<span class="font-body-md text-body-md">Настройки</span>
+</a>
+</nav>
+<!-- Control Panels: Параметры прогноза (shared JS wiring) -->
+<div class="flex-1 min-h-0 overflow-y-auto px-space-md pb-space-md flex flex-col gap-space-sm mt-space-md">
+<div class="pt-space-xs px-space-xs font-label-mono text-label-mono text-outline uppercase tracking-wider">Параметры прогноза</div>
+<!-- Период (маршрут выбирается карточками в блоке «Активные маршруты»; скрытый #routeSelect сохранён для app.js) -->
+<div class="hud-panel">
+<span class="hud-panel-label">Период прогноза</span>
+<label class="hud-field-label">От:
+<input type="date" id="fromDate" class="hud-input">
+</label>
+<label class="hud-field-label">До:
+<input type="date" id="toDate" class="hud-input">
+</label>
+<label class="hud-field-label">Детализация:
+<select id="granularity" class="hud-select">
+<option value="hour">По часам</option>
+<option value="day">По дням</option>
+<option value="month">По месяцам</option>
+</select>
+</label>
+</div>
+<!-- Корректирующие коэффициенты -->
+<div class="hud-panel">
+<span class="hud-panel-label">Корректирующие коэффициенты</span>
+<div class="hud-range-row">
+<span>🌧️ Погода</span>
+<input type="range" id="weatherFactor" class="hud-range" min="0.5" max="1.5" step="0.05" value="1.0">
+<span class="val" id="weatherFactorVal">1.0</span>
+</div>
+<div class="hud-range-row">
+<span>🎪 События</span>
+<input type="range" id="eventFactor" class="hud-range" min="0.5" max="1.5" step="0.05" value="1.0">
+<span class="val" id="eventFactorVal">1.0</span>
+</div>
+<div class="hud-range-row">
+<span>📅 Сезон</span>
+<input type="range" id="seasonFactor" class="hud-range" min="0.5" max="1.5" step="0.05" value="1.0">
+<span class="val" id="seasonFactorVal">1.0</span>
+</div>
+<button id="applyScenarioBtn" class="hud-btn">🔄 Применить</button>
+</div>
+<!-- Бизнес-ценность -->
+<div class="hud-panel">
+<span class="hud-panel-label">Бизнес-ценность</span>
+<div id="businessValue">
+<p class="hint">Выберите маршрут для расчёта</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Interactive Action Buttons -->
+<div class="p-space-md bg-surface-container-lowest border-t border-white/[0.04] flex flex-col gap-space-sm">
+<div class="flex gap-space-sm">
+<button class="hud-btn flex-1" id="exportCsvBtn" title="Экспорт CSV">📥 CSV</button>
+<button class="hud-btn flex-1" id="exportXlsxBtn" title="Экспорт XLSX">📥 XLSX</button>
+</div>
+<button class="w-full py-space-sm px-space-md rounded-lg bg-surface-container-low hover:bg-surface-container hover:text-white text-on-surface-variant font-body-md text-body-md flex items-center justify-center gap-space-sm transition-all duration-200 active:scale-95 shadow-sm hover:shadow-[0_0_15px_rgba(98,153,255,0.2)] border border-white/[0.06] hover:border-primary/40 relative overflow-hidden group" id="export-report-btn">
+<span class="material-symbols-outlined text-[20px] text-primary transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:text-primary-container">download</span>
+<span class="transition-colors" id="export-btn-text">Экспорт суточного отчета</span>
+</button>
+</div>
+</aside>
+<!-- Main Workspace Content Container -->
+<div class="pl-72">
+<main class="w-full min-h-screen bg-background px-margin pb-10">
+<div class="flex flex-col w-full">
+<div class="py-space-md flex flex-col gap-gutter">
+<!-- Top Utility Bar: Live ticking clock & telemetry tickers (Staggered Entrance Delays 0.15s - 0.25s) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<!-- Card 1: Passenger Flow -->
+<div class="anim-entrance-kpi-1 p-space-md rounded-xl bg-surface-container-lowest flex items-center justify-between shadow-sm border border-white/[0.05] hover:border-primary/30 transition-all duration-300 group">
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono text-outline uppercase tracking-wider flex items-center gap-1.5">
+                Пассажиропоток за сутки
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-pulse-dot"></span>
+</span>
+<span class="font-metric-xl text-metric-xl text-on-surface tracking-tight transition-all duration-300" id="metric-passengers">142&nbsp;815</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary/20 transition-all duration-300">
+<span class="material-symbols-outlined text-[24px]">groups</span>
+</div>
+</div>
+<!-- Card 2: Next Hour Forecast -->
+<div class="anim-entrance-kpi-2 p-space-md rounded-xl bg-surface-container-lowest flex items-center justify-between shadow-sm border border-white/[0.05] hover:border-primary/30 transition-all duration-300 group">
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono text-outline uppercase tracking-wider">Прогноз на след. час</span>
+<span class="font-metric-xl text-metric-xl text-primary flex items-baseline gap-1.5">
+<span class="transition-all duration-300" id="metric-forecast-pct">+14.8%</span>
+<span class="font-label-mono text-label-mono text-secondary font-normal">+21.4 тыс/ч</span>
+</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary group-hover:scale-105 group-hover:bg-primary/20 transition-all duration-300">
+<span class="material-symbols-outlined text-[24px]">trending_up</span>
+</div>
+</div>
+<!-- Card 3 & 4: Live Clock & Date HUD -->
+<div class="anim-entrance-hud md:col-span-2 rounded-xl bg-surface-container-lowest flex items-center justify-center shadow-sm" style="border: 1px solid rgba(255, 255, 255, 0.08); padding: 5px;">
+<div class="w-full flex items-center justify-between px-space-md py-space-sm rounded-lg bg-surface-container-low/80 border border-white/[0.08]">
+<!-- Live Ticking Clock -->
+<div class="flex items-center gap-space-xs text-on-surface">
+<svg class="w-5 h-5 text-primary animate-pulse" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="10"></circle>
+<polyline points="12 6 12 12 14 14"></polyline>
+</svg>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold font-mono" id="live-time-display">04:02:08</span>
+
+</div>
+<div class="h-5 w-px bg-outline-variant/60"></div>
+<!-- Calendar Date -->
+<div class="flex items-center gap-space-xs text-on-surface cursor-pointer group hover:text-primary transition-colors">
+<svg class="w-5 h-5 text-outline group-hover:text-primary transition-colors" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" viewBox="0 0 24 24">
+<rect height="18" rx="2" ry="2" width="18" x="3" y="4"></rect>
+<line x1="16" x2="16" y1="2" y2="6"></line>
+<line x1="8" x2="8" y1="2" y2="6"></line>
+<line x1="3" x2="21" y1="10" y2="10"></line>
+</svg>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight group-hover:text-primary transition-colors font-semibold">December 24</span>
+<svg class="w-4 h-4 text-outline group-hover:text-primary transition-colors" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+<polyline points="6 9 12 15 18 9"></polyline>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Operational Workspace: Left Route Cards + Right Map & Telemetry -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-gutter items-start">
+<!-- Left Column: Interactive Route Master List (Sequential Staggered delays: header 0.25s, search 0.3s, cards 0.35s - 0.56s) -->
+<div class="xl:col-span-4 flex flex-col gap-space-md bg-surface-container-lowest p-space-lg rounded-xl shadow-md border border-white/[0.05]">
+<!-- Header -->
+<div class="anim-entrance-route-header flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-md text-headline-md text-on-surface tracking-tight">Активные маршруты</span>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-primary font-label-mono text-label-mono flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span id="routes-online-count">Загрузка…</span>
+</span>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-high transition-all active:scale-95" title="Сортировка">
+<span class="material-symbols-outlined text-[18px]">sort</span>
+</button>
+</div>
+<!-- Filter & Search Input with smooth focus transitions -->
+<div class="anim-entrance-route-search relative w-full">
+<span class="material-symbols-outlined absolute left-space-md top-1/2 -translate-y-1/2 text-outline text-[18px] transition-colors group-focus-within:text-primary">search</span>
+<input class="w-full bg-surface-container text-on-surface font-body-md text-body-md pl-10 pr-space-md py-space-sm rounded-lg outline-none focus:ring-1 focus:ring-primary-container focus:bg-surface-container-high transition-all placeholder:text-outline border border-transparent focus:border-primary/40" id="route-search-input" placeholder="Поиск маршрута, депо, узла..." type="text">
+</div>
+<!-- Скрытый селект для совместимости с app.js/api.js: сам выбор маршрута теперь через карточки ниже -->
+<select id="routeSelect" class="hidden" aria-hidden="true" tabindex="-1"></select>
+<!-- Route Cards Container: карточки рендерятся из бэкенда через window.renderActiveRoutes() -->
+<div class="flex flex-col gap-space-md" id="route-cards-list">
+<p class="hint" style="padding: 0.25rem 0;">Загрузка маршрутов…</p>
+</div>
+</div>
+<!-- Right Column: Cartography Visualizer + Lower Telemetry Chart -->
+<div class="xl:col-span-8 flex flex-col gap-gutter">
+<!-- Interactive Geospatial Map: Leaflet + OSM with Dark Filter (Cinematic Entrance Delay 0.3s + Boot Scanline Sweep) -->
+<div class="anim-entrance-map relative w-full h-[520px] rounded-xl overflow-hidden bg-surface-container-lowest shadow-md border border-white/[0.05] group">
+<!-- Terminal Boot Scanline FX -->
+<div class="terminal-scanline"></div>
+<!-- Leaflet Map Canvas -->
+<div id="map" class="map-container absolute inset-0 w-full h-full z-0"></div>
+<!-- Top-Right Map HUD: Tram Route Stops List + Dark Map Toggle -->
+<div class="absolute top-space-md right-space-md z-20 w-72 bg-surface-container-lowest/92 backdrop-blur-md rounded-xl p-space-sm shadow-2xl flex flex-col gap-space-xs border border-white/[0.08] max-h-[calc(100%-2rem)] overflow-y-auto">
+<div class="flex items-center justify-between pb-space-xs border-b border-white/[0.06]">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="px-space-xs py-0.5 rounded bg-primary-container text-on-primary-container font-label-mono text-[10px] font-bold" id="stops-route-badge">—</span>
+<span class="font-headline-sm text-body-md font-bold text-on-surface">Остановки маршрута</span>
+</div>
+<span class="font-label-mono text-[10px] text-outline truncate" id="stops-route-path">Загрузка остановок…</span>
+</div>
+<button class="w-6 h-6 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Свернуть">
+<span class="material-symbols-outlined text-[16px]">expand_less</span>
+</button>
+</div>
+<!-- Dark Map Toggle -->
+<label class="map-dark-toggle flex items-center justify-between px-space-xs py-1.5 rounded bg-surface-container-low border border-white/[0.04] cursor-pointer select-none" title="Чёрный фильтр карты">
+<span class="flex items-center gap-1.5 font-label-mono text-[10px] text-on-surface">
+<span class="material-symbols-outlined text-[14px] text-primary">dark_mode</span>
+                      Тёмная карта
+                    </span>
+<input type="checkbox" id="mapDarkToggle" class="w-3.5 h-3.5">
+</label>
+<!-- Telemetry banner inside stops HUD -->
+<div class="flex items-center justify-between px-space-xs py-1 rounded bg-surface-container-low border border-white/[0.04]">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-emerald-400 live-pulse-dot"></span>
+<span class="font-label-mono text-[10px] text-on-surface">В движении • Рейс #412</span>
+</div>
+<span class="font-label-mono text-[10px] text-primary font-semibold">18 мин в пути</span>
+</div>
+<!-- Interactive Stops Timeline with Hover highlighting and active beacon -->
+<div class="relative flex flex-col gap-space-sm pt-space-xs" id="stops-container">
+<!-- Timeline vertical bar -->
+<div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-outline-variant/40 pointer-events-none">
+<div class="w-full h-[38%] bg-gradient-to-b from-primary via-primary-container to-secondary-container shadow-[0_0_8px_rgba(98,153,255,0.8)]"></div>
+</div>
+<!-- Остановки рендерятся из бэкенда через window.renderStopsList() (вертикальный список, без времени) -->
+<div id="stops-items" class="flex flex-col gap-space-sm"></div>
+</div>
+</div>
+<!-- Bottom-Left Watermark -->
+<div class="absolute bottom-space-sm left-space-md z-10 flex items-center gap-space-xs opacity-60 pointer-events-none">
+<span class="font-headline-sm text-headline-sm text-outline tracking-wider font-bold">ГУП Московский метрополитен</span>
+</div>
+</div>
+<!-- Lower Section: Chart.js Canvas Chart (Staggered Entrance Delay 0.45s) -->
+<div class="grid grid-cols-1 gap-gutter w-full">
+<div class="anim-entrance-chart bg-surface-container-lowest p-space-lg rounded-xl flex flex-col justify-between shadow-md w-full border border-white/[0.05]">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Почасовая динамика пассажиропотока</span>
+<span class="font-label-mono text-label-mono text-outline">Нагрузка по ключевым операционным окнам</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="px-space-sm py-0.5 rounded bg-surface-container font-label-mono text-label-mono text-primary border border-primary/20" id="chart-route-tag">Маршрут Т1</span>
+</div>
+</div>
+<!-- Chart.js Canvas + Empty-State Hint -->
+<div class="chart-wrapper">
+<canvas id="chartCanvas"></canvas>
+<div class="chart-empty-hint" id="chartEmptyHint">Выберите маршрут и период для построения графика</div>
+</div>
+<div class="text-center pt-space-xs flex items-center justify-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+<span class="font-label-mono text-label-mono text-outline tracking-wider uppercase">Подписи к графикам • Сенсоры входных валидаторов</span>
+</div>
+</div>
+<!-- Сводка прогноза (statsSummary из app.js) -->
+<div class="anim-entrance-chart bg-surface-container-lowest p-space-lg rounded-xl shadow-md w-full border border-white/[0.05]">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Сводка прогноза</span>
+<span class="font-label-mono text-label-mono text-outline">Агрегация по выбранному периоду</span>
+</div>
+</div>
+<div id="statsSummary" class="stats-grid">
+<p class="hint">Загрузите данные для отображения сводки</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Shared scripts (порядок: api → map → charts → app), затем страничный скрипт -->
+<script src="/static/js/api.js"></script>
+<script src="/static/js/map.js"></script>
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+  (function () {
+    'use strict';
+
+    // 1. Живые часы (оригинальный формат AM/PM)
+    var timeDisplay = document.getElementById('live-time-display');
+    var ampmDisplay = document.getElementById('live-ampm-display');
+
+    function updateLiveClock() {
+      var now = new Date();
+      var minutes = String(now.getMinutes()).padStart(2, '0');
+      var seconds = String(now.getSeconds()).padStart(2, '0');
+      var ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+      var hours = now.getHours() % 12;
+      hours = hours ? hours : 12;
+      var hoursStr = String(hours).padStart(2, '0');
+
+      if (timeDisplay) timeDisplay.textContent = hoursStr + ':' + minutes + ':' + seconds;
+      if (ampmDisplay) ampmDisplay.textContent = ampm;
+    }
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
+
+    // 2. КАРТОЧКИ МАРШРУТОВ — ЕДИНЫЙ РЕНДЕР из бэкенда (window.renderActiveRoutes).
+    // Контракт данных карточки (нормализуется в normRoute):
+    //   { id, number, name, active, load_percent, passengers, selected }
+    //   Дефолты при отсутствии полей: active=true, load_percent=0, passengers=null.
+    // Бэкенд сейчас отдаёт { id, number, name } (GET /api/routes);
+    // поля load_percent/passengers ожидаются в будущих per-route агрегатах —
+    // механизм обновления (updateRouteCard) уже готов их использовать.
+    var routeCardsList = document.getElementById('route-cards-list');
+    var routeSearchInput = document.getElementById('route-search-input');
+    var routeTag = document.getElementById('chart-route-tag');
+    var routesOnlineCount = document.getElementById('routes-online-count');
+    var currentRoutes = [];
+    var CARD_ANIM = ['anim-entrance-card-1', 'anim-entrance-card-2', 'anim-entrance-card-3', 'anim-entrance-card-4'];
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '\x26amp;').replace(/</g, '\x26lt;').replace(/>/g, '\x26gt;')
+        .replace(/"/g, '\x26quot;').replace(/'/g, '\x26#39;');
+    }
+
+    function fmtPax(n) {
+      return n != null ? Number(n).toLocaleString('ru-RU') : '—';
+    }
+
+    function normRoute(r, i) {
+      var id = r.id != null ? r.id : i;
+      return {
+        id: id,
+        number: r.number != null ? r.number : id,
+        name: r.name || '',
+        active: r.active !== false,
+        load_percent: typeof r.load_percent === 'number' ? r.load_percent : 0,
+        passengers: r.passengers != null ? r.passengers : null,
+        selected: !!r.selected
+      };
+    }
+
+    // Градиент прогресс-бара по уровню загрузки (стили оригинала: error/primary/tertiary)
+    function barGradientClass(pct) {
+      if (pct >= 85) return 'bg-gradient-to-r from-error to-error-container shadow-[0_0_10px_rgba(255,180,171,0.5)]';
+      if (pct >= 60) return 'bg-gradient-to-r from-primary via-primary-container to-secondary-container shadow-[0_0_12px_rgba(98,153,255,0.7)]';
+      if (pct >= 35) return 'bg-gradient-to-r from-primary to-primary-container';
+      return 'bg-tertiary';
+    }
+
+    function routeCardHtml(route, index) {
+      var pct = Math.max(0, Math.min(100, route.load_percent));
+      var num = escapeHtml(route.number);
+      var name = escapeHtml(route.name);
+      var base = route.selected
+        ? 'route-card route-card-active relative p-space-lg rounded-xl cursor-pointer transition-all duration-300 transform hover:-translate-y-0.5 overflow-hidden group'
+        : 'route-card p-space-lg rounded-xl bg-surface-container-low hover:bg-surface-container transition-all duration-300 cursor-pointer border border-white/[0.08] hover:border-primary/50 hover:shadow-[0_0_20px_rgba(98,153,255,0.2)] transform hover:-translate-y-0.5 group';
+      var status = route.active
+        ? '<span class="flex items-center gap-1 text-[11px] font-label-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">'
+          + '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-pulse-dot"></span>'
+          + '<span class="card-status-text">АКТИВЕН</span></span>'
+        : '<span class="flex items-center gap-1 text-[11px] font-label-mono text-outline">'
+          + '<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>'
+          + '<span class="card-status-text">Не активен</span></span>';
+      var right = route.selected
+        ? '<span class="text-primary group-hover:translate-x-1 transition-transform">Подробнее →</span>'
+        : '<span class="text-outline group-hover:text-primary group-hover:translate-x-1 transition-all">Выбрать →</span>';
+      return '<div class="' + CARD_ANIM[index % CARD_ANIM.length] + ' ' + base + '" data-route-id="' + route.id
+        + '" data-number="' + num + '" data-name="' + name + '">'
+        + '<div class="absolute -right-10 -bottom-10 w-32 h-32 bg-primary-container/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>'
+        + '<div class="flex items-start justify-between mb-space-sm">'
+        + '<div class="flex items-center gap-space-sm">'
+        + '<span class="font-headline-sm text-headline-sm text-on-surface">Номер маршрута</span>'
+        + '<span class="px-space-sm py-0.5 rounded bg-surface-container-highest font-label-mono text-label-mono text-primary font-bold">' + num + '</span>'
+        + '</div>' + status + '</div>'
+        + '<div class="flex items-baseline justify-between mb-space-xs">'
+        + '<span class="font-label-ui text-label-ui text-on-surface-variant">Загруженность</span>'
+        + '<div class="flex items-baseline gap-space-xs">'
+        + '<span class="card-pax-value font-metric-md text-metric-md text-on-surface font-bold">' + fmtPax(route.passengers) + '</span>'
+        + '<span class="card-pax-suffix font-label-mono text-label-mono text-outline">пасс/сут (' + pct + '%)</span>'
+        + '</div></div>'
+        + '<div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden mb-space-sm">'
+        + '<div class="card-bar-fill h-full rounded-full ' + barGradientClass(pct) + '" style="width:' + pct + '%"></div>'
+        + '</div>'
+        + '<div class="flex items-center justify-between text-[11px] font-label-mono text-outline pt-1">'
+        + '<span class="card-footer-left">' + (name || 'На линии') + '</span>' + right
+        + '</div>'
+        + '</div>';
+    }
+
+    // Единый рендер всех карточек «Активных маршрутов» из массива маршрутов бэкенда.
+    window.renderActiveRoutes = function (routes) {
+      currentRoutes = (routes || []).map(normRoute);
+      if (!routeCardsList) return;
+      routeCardsList.innerHTML = '';
+      if (!currentRoutes.length) {
+        routeCardsList.innerHTML = '<p class="hint" style="padding: 0.25rem 0;">Маршруты не загружены</p>';
+        return;
+      }
+      // Первый маршрут выбран по умолчанию — прогнозному потоку нужен выбранный маршрут
+      if (!currentRoutes.some(function (r) { return r.selected; })) {
+        currentRoutes[0].selected = true;
+      }
+      currentRoutes.forEach(function (route, i) {
+        routeCardsList.insertAdjacentHTML('beforeend', routeCardHtml(route, i));
+      });
+      if (routesOnlineCount) {
+        routesOnlineCount.textContent = currentRoutes.filter(function (r) { return r.active; }).length + ' на линии';
+      }
+      syncHiddenSelect();
+      applyRouteFilter(routeSearchInput ? routeSearchInput.value : '');
+    };
+
+    // Держим скрытый #routeSelect (совместимость с app.js/api.js) в актуальном состоянии
+    function syncHiddenSelect() {
+      var sel = document.getElementById('routeSelect');
+      if (!sel) return;
+      currentRoutes.forEach(function (r) {
+        var exists = Array.prototype.some.call(sel.options, function (o) { return o.value === String(r.id); });
+        if (!exists) {
+          var opt = document.createElement('option');
+          opt.value = String(r.id);
+          opt.textContent = 'Маршрут ' + r.number + (r.name ? ' · ' + r.name : '');
+          sel.appendChild(opt);
+        }
+      });
+      var selected = currentRoutes.find(function (r) { return r.selected; });
+      if (selected) sel.value = String(selected.id);
+    }
+
+    function setSelectedRoute(card) {
+      var rid = card.getAttribute('data-route-id');
+      currentRoutes.forEach(function (r) { r.selected = String(r.id) === rid; });
+      var cards = routeCardsList.querySelectorAll('.route-card');
+      cards.forEach(function (c) {
+        c.classList.remove('route-card-active');
+        c.style.background = '';
+        c.style.borderColor = '';
+        c.style.boxShadow = '';
+      });
+      card.classList.add('route-card-active');
+    }
+
+    // 3. Поиск/фильтр маршрутов (по номеру/названию карточки; работает для динамических карточек)
+    function applyRouteFilter(q) {
+      var needle = (q || '').toLowerCase().trim();
+      var cards = routeCardsList ? routeCardsList.querySelectorAll('.route-card') : [];
+      cards.forEach(function (card) {
+        var hay = ((card.getAttribute('data-name') || '') + ' ' + (card.getAttribute('data-number') || '')).toLowerCase();
+        card.style.display = (!needle || hay.indexOf(needle) !== -1) ? '' : 'none';
+      });
+    }
+    if (routeSearchInput) {
+      routeSearchInput.addEventListener('input', function (e) { applyRouteFilter(e.target.value); });
+    }
+
+    // 4. Клик по карточке (делегирование): выбор маршрута → скрытый селект → change → прогноз/карта/остановки
+    if (routeCardsList) {
+      routeCardsList.addEventListener('click', function (e) {
+        var card = e.target.closest('.route-card');
+        if (!card) return;
+        setSelectedRoute(card);
+        var rid = card.getAttribute('data-route-id');
+        if (routeTag) {
+          routeTag.textContent = 'Маршрут ' + (card.getAttribute('data-number') || rid);
+          routeTag.classList.add('num-flicker');
+          setTimeout(function () { routeTag.classList.remove('num-flicker'); }, 500);
+        }
+        var sel = document.getElementById('routeSelect');
+        if (sel && rid) {
+          var matched = false;
+          for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === rid) {
+              sel.value = rid;
+              matched = true;
+              break;
+            }
+          }
+          if (matched) sel.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+
+    // 4b. СПИСОК ОСТАНОВОК В HUD КАРТЫ — ЕДИНЫЙ РЕНДЕР из бэкенда.
+    // Источник: GET /api/stops?route={route_id} (api.getStops) →
+    //   [{ id, route_id, name, lat, lon, order_num, is_terminal }]
+    // Вертикальный список названий в порядке следования, без времени отправления.
+    var stopsItems = document.getElementById('stops-items');
+    var stopsBadge = document.getElementById('stops-route-badge');
+    var stopsPath = document.getElementById('stops-route-path');
+
+    function stopName(s) {
+      return s.name || s.stop_name || s.title || ('Остановка ' + s.id);
+    }
+
+    window.renderStopsList = function (stops, meta) {
+      var list = (stops || []).slice().sort(function (a, b) {
+        var oa = a.order_num != null ? a.order_num : 999;
+        var ob = b.order_num != null ? b.order_num : 999;
+        return oa - ob;
+      });
+      var m = meta || {};
+      if (stopsBadge) stopsBadge.textContent = String(m.number != null ? m.number : '—');
+      if (stopsPath) {
+        stopsPath.textContent = list.length
+          ? 'Следование: ' + stopName(list[0]) + ' → ' + stopName(list[list.length - 1])
+          : 'Остановки не загружены';
+      }
+      if (!stopsItems) return;
+      stopsItems.innerHTML = '';
+      if (!list.length) {
+        stopsItems.innerHTML = '<p class="hint" style="padding: 0.25rem 0;">Остановки не найдены</p>';
+        return;
+      }
+      list.forEach(function (stop, i) {
+        var isTerminal = i === 0 || i === list.length - 1 || stop.is_terminal;
+        var dot = isTerminal
+          ? 'w-2.5 h-2.5 rounded-full bg-primary border-2 border-surface-container-lowest shadow-[0_0_8px_rgba(98,153,255,0.7)] mt-0.5 group-hover:scale-125 transition-transform'
+          : 'w-2 h-2 rounded-full bg-surface-container-highest border border-outline-variant mt-1 group-hover:bg-primary group-hover:border-primary transition-colors';
+        var item = document.createElement('div');
+        item.className = 'stop-item relative flex items-start gap-space-sm p-1 rounded-lg hover:bg-surface-container-high/60 cursor-pointer transition-all duration-200 group';
+        item.innerHTML = '<div class="relative z-10 w-6 flex justify-center"><div class="' + dot + '"></div></div>'
+          + '<div class="flex-1 flex flex-col min-w-0">'
+          + '<span class="font-headline-sm text-[12px] text-on-surface font-semibold truncate group-hover:text-primary transition-colors">ст. ' + escapeHtml(stopName(stop)) + '</span>'
+          + '<span class="font-label-mono text-[10px] text-outline">' + (isTerminal ? 'Конечная' : 'Остановка маршрута') + '</span>'
+          + '</div>';
+        item.addEventListener('mouseenter', function () { item.style.transform = 'translateX(4px)'; });
+        item.addEventListener('mouseleave', function () { item.style.transform = 'translateX(0)'; });
+        stopsItems.appendChild(item);
+      });
+    };
+
+    // Загрузка остановок маршрута из бэкенда и рендер через renderStopsList.
+    // Используется как отдельный публичный интерфейс; app.js также вызывает
+    // renderStopsList напрямую с уже загруженным массивом allStops (тот же источник).
+    window.renderStops = async function (routeId) {
+      if (typeof api === 'undefined') return;
+      var meta = null;
+      currentRoutes.forEach(function (r) { if (String(r.id) === String(routeId)) meta = r; });
+      try {
+        var stops = await api.getStops(routeId);
+        window.renderStopsList(stops, meta || { number: routeId });
+      } catch (err) {
+        console.error('Ошибка загрузки остановок:', err);
+        if (stopsItems) stopsItems.innerHTML = '<p class="error">⚠️ ' + escapeHtml(err.message) + '</p>';
+      }
+    };
+
+    // Лёгкое обновление одной карточки (прогресс-бар, пассажиры, статус) без полного ре-рендера,
+    // чтобы не переигрывать entrance-анимации. Полный ре-рендер — renderActiveRoutes().
+    window.updateRouteCard = function (route) {
+      if (!route || route.id == null || !routeCardsList) return;
+      var rid = String(route.id);
+      var card = routeCardsList.querySelector('.route-card[data-route-id="' + rid + '"]');
+      if (!card) return;
+      var idx = -1;
+      currentRoutes.forEach(function (r, i) { if (String(r.id) === rid) idx = i; });
+      var merged = normRoute(Object.assign({}, idx >= 0 ? currentRoutes[idx] : { id: route.id }, route), Math.max(0, idx));
+      if (idx >= 0) currentRoutes[idx] = merged;
+      var pct = Math.max(0, Math.min(100, merged.load_percent));
+      var paxEl = card.querySelector('.card-pax-value');
+      var suffixEl = card.querySelector('.card-pax-suffix');
+      var barFill = card.querySelector('.card-bar-fill');
+      var statusText = card.querySelector('.card-status-text');
+      if (paxEl) paxEl.textContent = fmtPax(merged.passengers);
+      if (suffixEl) suffixEl.textContent = 'пасс/сут (' + pct + '%)';
+      if (barFill) {
+        barFill.style.width = pct + '%';
+        barFill.className = 'card-bar-fill h-full rounded-full transition-all duration-700 ' + barGradientClass(pct);
+      }
+      if (statusText) statusText.textContent = merged.active ? 'АКТИВЕН' : 'Не активен';
+      return merged;
+    };
+
+    // 5. Тег графика при смене маршрута через селект (app.js onRouteChange)
+    var selEl = document.getElementById('routeSelect');
+    if (selEl && routeTag) {
+      selEl.addEventListener('change', function () {
+        var opt = selEl.options[selEl.selectedIndex];
+        if (opt && opt.value) routeTag.textContent = 'Маршрут ' + opt.value;
+      });
+    }
+
+    // 6. Тёмный/чёрный фильтр карты (CSS filter на tile-pane Leaflet)
+    var darkToggle = document.getElementById('mapDarkToggle');
+    var mapEl = document.getElementById('map');
+    if (darkToggle && mapEl) {
+      darkToggle.addEventListener('change', function () {
+        mapEl.classList.toggle('dark', darkToggle.checked);
+      });
+    }
+
+    // 7. Микро-флуктуации счётчика пассажиропотока (демо)
+    var passengersEl = document.getElementById('metric-passengers');
+    setInterval(function () {
+      if (!passengersEl) return;
+      var cur = parseInt(passengersEl.textContent.replace(/\s/g, ''), 10) || 142850;
+      passengersEl.textContent = (cur + (Math.floor(Math.random() * 21) - 10)).toLocaleString('ru-RU');
+      passengersEl.classList.add('num-flicker');
+      setTimeout(function () { passengersEl.classList.remove('num-flicker'); }, 500);
+    }, 4500);
+
+    // 8. Экспорт суточного отчета (демо-отклик кнопки)
+    var exportBtn = document.getElementById('export-report-btn');
+    var exportBtnText = document.getElementById('export-btn-text');
+    if (exportBtn && exportBtnText) {
+      exportBtn.addEventListener('click', function () {
+        var originalText = exportBtnText.textContent;
+        exportBtnText.textContent = 'Формирование PDF...';
+        exportBtn.classList.add('ring-2', 'ring-primary', 'bg-surface-container-high');
+
+        setTimeout(function () {
+          exportBtnText.textContent = 'Отчет готов ✓';
+          setTimeout(function () {
+            exportBtnText.textContent = originalText;
+            exportBtn.classList.remove('ring-2', 'ring-primary', 'bg-surface-container-high');
+          }, 2000);
+        }, 1200);
+      });
+    }
+
+    // 9. Самоинициализация (страховка, если app.js по какой-то причине не отрисовал карточки).
+    //    Hover-подсветка остановок теперь вешается внутри renderStopsList().
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(function () {
+        var sel = document.getElementById('routeSelect');
+        if (sel && sel.options.length === 0 && typeof api !== 'undefined') {
+          api.getRoutes().then(function (routes) {
+            window.renderActiveRoutes(routes);
+            if (routes && routes.length && typeof window.renderStops === 'function') {
+              window.renderStops(routes[0].id);
+            }
+          }).catch(function (e) { console.error('Ошибка загрузки маршрутов:', e); });
+        }
+      }, 1200);
+    });
+
+    // 10. Почасовая динамика: data-ready API для charts.js
+    //     labels — timestamp, values — количество пассажиров.
+    //     Когда бэкенд вернёт реальные прогнозы, app.js вызовет renderChart()
+    //     с теми же данными и перерисует этот же canvas.
+    window.renderHourlyChart = function (labels, values, title) {
+      if (typeof renderChart !== 'function' || typeof Chart === 'undefined') return;
+      var hint = document.getElementById('chartEmptyHint');
+      if (hint) hint.style.display = 'none';
+      if (routeTag && title) routeTag.textContent = title;
+      var forecasts = (labels || []).map(function (lbl, i) {
+        var d = new Date(lbl);
+        return {
+          timestamp: lbl,
+          hour: isNaN(d.getTime()) ? i : d.getHours(),
+          route_id: null,
+          passengers_predicted: values[i] || 0,
+          passengers_lower: null,
+          passengers_upper: null
+        };
+      });
+      renderChart(forecasts, 'hour');
+    };
+
+    // 11. Демо-данные на 24 часа (пока бэкенд не отдаст реальный прогноз)
+    var hours = [];
+    var demoValues = [1820, 1240, 840, 620, 510, 980, 2450, 5100, 7800, 6400, 5200,
+                      6100, 7400, 6900, 5800, 5400, 6600, 9200, 11800, 12400, 10600,
+                      7600, 4800, 2900];
+    for (var i = 0; i < 24; i++) {
+      var d = new Date();
+      d.setHours(i, 0, 0, 0);
+      hours.push(d.toISOString());
+    }
+    window.renderHourlyChart(hours, demoValues, 'Маршрут — демо-данные');
+  })();
+</script>
+
+</body></html>

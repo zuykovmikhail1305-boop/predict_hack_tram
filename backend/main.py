@@ -52,9 +52,13 @@ app.include_router(ml_router.router)
 async def health():
     return {"status": "ok"}
 
+@app.get("/index")
+async def index(request: Request):
+    return templates.TemplateResponse(name="index.html", request=request, context={})
+
 @app.get("/")
 async def root(request: Request):
-    return templates.TemplateResponse(name="index.html", request=request, context={})
+    return templates.TemplateResponse(name="code.html", request=request, context={})
 
 if __name__ == "__main__":
     import uvicorn

@@ -45,10 +45,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Авто-загрузка прогноза при старте
+  // Авто-загрузка при старте: диспатчим change, чтобы единый поток onRouteChange
+  // (карта + список остановок + прогноз) отработал и для первого маршрута.
   if (allRoutes.length > 0) {
-    document.getElementById('routeSelect').value = allRoutes[0].id;
-    await loadForecast(allRoutes[0].id);
+    const sel = document.getElementById('routeSelect');
+    sel.value = allRoutes[0].id;
+    sel.dispatchEvent(new Event('change'));
   }
 });
 
@@ -62,6 +64,12 @@ function populateRoutes(routes) {
     opt.textContent = `Маршрут ${r.number}${r.name ? ` · ${r.name}` : ''}`;
     sel.appendChild(opt);
   });
+
+  // Хук для главной страницы (code.html): единый рендер карточек «Активных маршрутов».
+  // На других страницах (index.html) функция отсутствует — проверка typeof страхует.
+  if (typeof window.renderActiveRoutes === 'function') {
+    window.renderActiveRoutes(routes);
+  }
 }
 
 async function onRouteChange() {
@@ -73,6 +81,13 @@ async function onRouteChange() {
   clearMapMarkers();
   stops.forEach(s => addRouteStop(s, true));
   addRoutePolyline(stops);
+
+  // Хук: единый список остановок в HUD карты (code.html renderStopsList).
+  // Данные из того же ответа бэкенда (allStops из /api/stops), отсортированы по order_num.
+  if (typeof window.renderStopsList === 'function') {
+    const meta = allRoutes.find(r => r.id === routeId) || null;
+    window.renderStopsList(stops, meta ? { number: meta.number, name: meta.name } : { number: routeId });
+  }
 
   await loadForecast(routeId);
 }
@@ -95,6 +110,24 @@ async function loadForecast(routeId) {
     renderChart(currentForecasts, granularity);
     renderStats(currentForecasts);
     renderBusinessValue(currentForecasts, routeId);
+
+    // Динамические состояния карточек: бэкенд пока НЕ возвращает per-route агрегаты
+    // (в ForecastOut нет load_percent/passengers). Поэтому берём фактические суммы
+    // прогноза выбранного маршрута и передаём в updateRouteCard (code.html).
+    // ОЖИДАЕМЫЙ КОНТРАКТ НА БУДУЩЕЕ: когда /api/forecast (или отдельный эндпоинт)
+    // начнёт отдавать агрегаты вида { route_id, load_percent, passengers },
+    // их нужно будет прокинуть напрямую в renderActiveRoutes(updatedRoutes)/updateRouteCard.
+    if (typeof window.updateRouteCard === 'function' && currentForecasts.length) {
+      const total = currentForecasts.reduce((s, f) => s + f.passengers_predicted, 0);
+      const peak = Math.max(...currentForecasts.map(f => f.passengers_predicted));
+      window.updateRouteCard({
+        id: routeId,
+        passengers: total,
+        // Эвристика (до появления load_percent в API): загрузка часа пик
+        // относительно вместимости вагона 180 чел. — та же константа, что в renderBusinessValue.
+        load_percent: Math.min(100, Math.round(peak / 180)),
+      });
+    }
 
     // Heatmap на карте
     const stops = allStops.filter(s => s.route_id === routeId);
