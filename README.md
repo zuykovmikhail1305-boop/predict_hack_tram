@@ -18,15 +18,16 @@
 ## 🚀 Быстрый старт
 
 ```bash
-# 1. Клонировать / перейти в папку
-cd tram-hack
+# 1. Клонировать репозиторий и перейти в папку
+git clone <url-репозитория>
+cd predict_hack_tram
 
-# 2. Поднять сервисы
-docker compose up --build
+# 2. Поднять сервисы в Docker
+docker compose up -d --build
 
-# 3. (отдельно) Сидировать тестовые данные
-docker compose exec backend python seed_data.py
-```
+# 3. Наполнить базу данных маршрутами и реальными координатами остановок
+docker compose exec tram-predict-service python load_real_stops.py
+docker compose exec tram-predict-service python update_route_names.py
 
 **Локальный запуск без Docker** (из корня репозитория):
 
