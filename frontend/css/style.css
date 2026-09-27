@@ -196,3 +196,16 @@ body {
     padding: 1rem;
   }
 }
+
+.chart-card {
+    height: 400px !important;
+    max-height: 400px !important;
+    position: relative !important;
+}
+
+#chartCanvas {
+    height: 320px !important;
+    max-height: 320px !important;
+    width: 100% !important;
+    display: block !important;
+}

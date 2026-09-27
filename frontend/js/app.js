@@ -98,9 +98,9 @@ async function loadForecast(routeId) {
 
     // Heatmap на карте
     const stops = allStops.filter(s => s.route_id === routeId);
-    if (stops.length > 0) {
-      showHeatmap(currentForecasts, stops);
-    }
+    //if (stops.length > 0) {
+    //	showHeatmap(currentForecasts, stops);
+    //}
   } catch (e) {
     console.error('Ошибка загрузки прогноза:', e);
     document.getElementById('statsSummary').innerHTML = `<p class="error">⚠️ ${e.message}</p>`;
