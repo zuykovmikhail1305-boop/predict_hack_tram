@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 EXCEL_FILE = "Хакатон_справочники_трамвай_10_маршрутов.xlsx"
-DB_PATH = r"data\tram.db"
+DB_PATH = r"data/tram.db"
 
 if not os.path.exists(EXCEL_FILE):
     print(f"❌ Файл {EXCEL_FILE} не найден в текущей папке!")
