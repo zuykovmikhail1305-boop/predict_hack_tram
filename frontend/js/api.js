@@ -39,6 +39,13 @@ const api = {
     return this.request(`/api/forecast?${p}`);
   },
 
+  // Прогноз на следующий час для KPI-карточки:
+  // факт текущего часа + прогноз следующего часа (GET /api/forecast/next-hour)
+  getNextHourForecast(routeId) {
+    const q = routeId ? `?route_id=${encodeURIComponent(routeId)}` : '';
+    return this.request(`/api/forecast/next-hour${q}`);
+  },
+
   // Сценарий
   applyScenario(data) {
     return this.request('/api/forecast/scenario', {

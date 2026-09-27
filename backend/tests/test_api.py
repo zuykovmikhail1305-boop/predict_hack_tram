@@ -350,3 +350,131 @@ class TestML:
         # После очистки прогнозов 0
         stats = await client.get("/api/ml/predict/stats")
         assert stats.json()["total_forecasts"] == 0
+
+
+class TestPredict:
+    """POST /api/predict — живой гибридный эндпоинт прогнозирования."""
+
+    REQUIRED_FIELDS = {
+        "route_id", "timestamp", "hour", "passengers_predicted",
+        "passengers_lower", "passengers_upper",
+        "is_weekend", "is_holiday", "weather_factor", "event_factor",
+    }
+
+    async def test_predict_hourly_no_persist(self, client, seed_data):
+        """persist=false: 200, 24 почасовых строк, все поля Forecast на месте."""
+        resp = await client.post("/api/predict", json={
+            "route_ids": [1],
+            "horizon": "hour",
+            "periods": 24,
+            "persist": False,
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["mode"] == "statistical"
+        assert data["predicted"] == 24
+        assert data["stored"] == 0
+        rows = data["rows"]
+        assert len(rows) == 24
+        for r in rows:
+            assert self.REQUIRED_FIELDS.issubset(r.keys())
+            assert r["route_id"] == 1
+            assert r["passengers_predicted"] >= 0
+            assert r["passengers_lower"] == round(r["passengers_predicted"] * 0.8)
+            assert r["passengers_upper"] == round(r["passengers_predicted"] * 1.2)
+            assert r["passengers_lower"] <= r["passengers_predicted"] <= r["passengers_upper"]
+        # Все часы заполнены (по одному на каждый час подряд)
+        hours = [r["hour"] for r in rows]
+        assert len(set(hours)) == 24
+
+    async def test_predict_day_horizon(self, client, seed_data):
+        """horizon=day periods=2: два дня с шагом сутки, все 24 часа в каждом дне."""
+        resp = await client.post("/api/predict", json={
+            "route_ids": [1],
+            "start": "2026-10-01T00:00:00",
+            "horizon": "day",
+            "periods": 2,
+            "persist": False,
+        })
+        assert resp.status_code == 200
+        rows = resp.json()["rows"]
+        assert len(rows) == 48  # 2 дня × 24 часа
+        days = sorted({r["timestamp"][:10] for r in rows})
+        assert days == ["2026-10-01", "2026-10-02"]
+        hours = sorted({r["hour"] for r in rows})
+        assert hours == list(range(24))
+
+    async def test_predict_invalid_route(self, client, seed_data):
+        """Несуществующий маршрут → 400."""
+        resp = await client.post("/api/predict", json={
+            "route_ids": [999],
+            "horizon": "hour",
+            "periods": 3,
+            "persist": False,
+        })
+        assert resp.status_code == 400
+
+    async def test_predict_invalid_horizon(self, client, seed_data):
+        """Неверный горизонт → 422 (Pydantic Literal)."""
+        resp = await client.post("/api/predict", json={
+            "route_ids": [1],
+            "horizon": "minute",
+            "periods": 3,
+            "persist": False,
+        })
+        assert resp.status_code == 422
+
+    async def test_predict_persist_and_readable(self, client, seed_data):
+        """persist=true: строки читаются через GET /api/forecast,
+        повторный вызов не создаёт дубликатов (UPSERT по route_id+timestamp)."""
+        payload = {
+            "route_ids": [1],
+            "start": "2026-10-01T00:00:00",
+            "horizon": "hour",
+            "periods": 4,
+            "persist": True,
+        }
+        resp = await client.post("/api/predict", json=payload)
+        assert resp.status_code == 200
+        assert resp.json()["stored"] == 4
+
+        get = await client.get("/api/forecast", params={
+            "route": 1, "from_date": "2026-10-01", "to_date": "2026-10-01",
+        })
+        assert get.status_code == 200
+        assert len(get.json()) == 4
+
+        # Повторный вызов: та же дата и часы — дубликатов нет
+        again = await client.post("/api/predict", json=payload)
+        assert again.json()["stored"] == 4
+        get2 = await client.get("/api/forecast", params={
+            "route": 1, "from_date": "2026-10-01", "to_date": "2026-10-01",
+        })
+        assert len(get2.json()) == 4
+
+    async def test_predict_all_routes_default(self, client, seed_data):
+        """Без route_ids — прогноз для всех маршрутов (3 в тестовой БД)."""
+        resp = await client.post("/api/predict", json={
+            "horizon": "hour",
+            "periods": 3,
+            "persist": False,
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["predicted"] == 9  # 3 маршрута × 3 часа
+        route_ids = {r["route_id"] for r in data["rows"]}
+        assert route_ids == {1, 2, 3}
+
+    async def test_predict_statistical_mode_reported(self, client, seed_data):
+        """Без артефакта модели ответ сообщает mode='statistical'."""
+        resp = await client.post("/api/predict", json={
+            "route_ids": [1],
+            "horizon": "hour",
+            "periods": 1,
+            "persist": False,
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["mode"] == "statistical"
+        assert data["model_path"] is None
+        assert data["rows"][0]["passengers_predicted"] >= 0

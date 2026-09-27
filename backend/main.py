@@ -7,13 +7,22 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.routers import routes_router, stops_router, forecast_router, export_router, external_router, ml_router
+from app.routers import (
+    routes_router, stops_router, forecast_router, export_router,
+    external_router, ml_router, predict_router,
+)
+from app.services.prediction import model_worker
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    yield
+    # Запускаем выделенный daemon-поток модели: он «живёт и ждёт запросы».
+    model_worker.start()
+    try:
+        yield
+    finally:
+        model_worker.stop()
 
 
 app = FastAPI(
@@ -46,6 +55,7 @@ app.include_router(forecast_router.router)
 app.include_router(export_router.router)
 app.include_router(external_router.router)
 app.include_router(ml_router.router)
+app.include_router(predict_router.router)
 
 
 @app.get("/health")

@@ -6,9 +6,126 @@ from typing import Optional
 
 from app.database import get_db
 from app.models import Forecast, Route, Scenario
-from app.schemas import ForecastOut, ForecastQuery, ScenarioCreate, ScenarioOut
+from app.schemas import (
+    ForecastOut, ForecastQuery, ScenarioCreate, ScenarioOut,
+    HourPoint, NextHourForecastOut,
+)
 
 router = APIRouter(prefix="/api/forecast", tags=["forecast"])
+
+
+@router.get("/next-hour", response_model=NextHourForecastOut)
+async def get_next_hour_forecast(
+    route_id: Optional[int] = Query(None, description="ID маршрута; без параметра — сумма по всем маршрутам"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Факт «текущего» часа + прогноз на следующий час для KPI-карточки.
+
+    В БД хранятся только почасовые ПРОГНОЗЫ (таблица forecasts) —
+    фактических замеров пассажиропотока нет. Поэтому:
+      * за «факт текущего часа» берётся запись ровно за текущий час сервера,
+        а если её нет — последний доступный час в данных (is_fallback=true);
+      * за «прогноз на следующий час» — следующая почасовая запись;
+      * если следующего часа в данных ещё нет (конец диапазона), берётся
+        пара «предпоследний → последний» час (is_fallback=true).
+    При полном отсутствии данных возвращается пустой ответ без ошибки 500.
+    """
+    query = select(Forecast).order_by(Forecast.timestamp)
+    if route_id is not None:
+        query = query.where(Forecast.route_id == route_id)
+    result = await db.execute(query)
+    records = result.scalars().all()
+
+    route_number = None
+    if route_id is not None:
+        route_obj = await db.get(Route, route_id)
+        route_number = route_obj.number if route_obj else None
+
+    if not records:
+        return NextHourForecastOut(
+            route_id=route_id,
+            route_number=route_number,
+            note="Нет данных для прогноза на следующий час",
+        )
+
+    # Собираем почасовые агрегаты: ключ — timestamp, значение — (пассажиры, нижняя, верхняя, час).
+    # Для конкретного маршрута — это его записи; без route_id — сумма по всем маршрутам.
+    by_ts = {}
+    for rec in records:
+        prev = by_ts.get(rec.timestamp)
+        if prev is None:
+            by_ts[rec.timestamp] = (
+                rec.passengers_predicted, rec.passengers_lower, rec.passengers_upper, rec.hour,
+            )
+        else:
+            p, lo, hi, hour = prev
+            by_ts[rec.timestamp] = (
+                p + rec.passengers_predicted,
+                (lo or 0) + (rec.passengers_lower or 0),
+                (hi or 0) + (rec.passengers_upper or 0),
+                hour,
+            )
+
+    ordered_ts = sorted(by_ts.keys())
+
+    def make_point(ts: datetime) -> HourPoint:
+        p, lo, hi, hour = by_ts[ts]
+        return HourPoint(
+            timestamp=ts,
+            hour=hour,
+            passengers=p,
+            passengers_lower=lo,
+            passengers_upper=hi,
+        )
+
+    # Референс «текущего» часа: точное совпадение с текущим часом сервера.
+    now_hour = datetime.now().replace(minute=0, second=0, microsecond=0)
+    current_ts = now_hour if now_hour in by_ts else None
+    is_fallback = current_ts is None
+
+    if current_ts is None:
+        # Данных ровно за текущий час нет — используем последний доступный час.
+        current_ts = ordered_ts[-1]
+
+    next_ts = current_ts + timedelta(hours=1)
+    current_point = make_point(current_ts)
+    next_point = make_point(next_ts) if next_ts in by_ts else None
+
+    # Следующего часа нет (конец диапазона данных): показываем последний
+    # известный прирост — пара «предпоследний → последний» час.
+    if next_point is None and len(ordered_ts) >= 2:
+        current_ts = ordered_ts[-2]
+        next_ts = ordered_ts[-1]
+        current_point = make_point(current_ts)
+        next_point = make_point(next_ts)
+        is_fallback = True
+
+    diff_abs = None
+    diff_pct = None
+    if next_point is not None:
+        diff_abs = float(next_point.passengers - current_point.passengers)
+        diff_pct = round(diff_abs / current_point.passengers * 100, 1) if current_point.passengers else None
+
+    note = None
+    if is_fallback:
+        note = (
+            f"Записей ровно за текущий час ({now_hour:%Y-%m-%d %H:%M}) в БД нет; "
+            f"показан последний доступный час: {current_ts:%Y-%m-%d %H:%M}."
+        )
+    elif next_point is None:
+        note = "Следующего часа в данных пока нет — сравнение не выполнено."
+
+    return NextHourForecastOut(
+        route_id=route_id,
+        route_number=route_number,
+        current=current_point,
+        next=next_point,
+        diff_abs=diff_abs,
+        diff_pct=diff_pct,
+        is_fallback=is_fallback,
+        note=note,
+    )
 
 
 @router.get("", response_model=list[ForecastOut])
